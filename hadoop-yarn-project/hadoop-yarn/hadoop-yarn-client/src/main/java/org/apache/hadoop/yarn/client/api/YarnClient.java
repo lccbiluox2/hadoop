@@ -81,6 +81,7 @@ import org.apache.hadoop.yarn.security.AMRMTokenIdentifier;
 public abstract class YarnClient extends AbstractService {
 
   /**
+   *
    * Create a new instance of YarnClient.
    */
   @Public
