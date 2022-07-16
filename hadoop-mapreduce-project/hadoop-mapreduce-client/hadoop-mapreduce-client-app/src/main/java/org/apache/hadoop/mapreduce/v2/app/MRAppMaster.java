@@ -1300,6 +1300,7 @@ public class MRAppMaster extends CompositeService {
       jobEventDispatcher.handle(initFailedEvent);
     } else {
       // All components have started, start the job.
+      // todo: 最终启动任务的方法
       startJobs();
     }
   }
@@ -1531,9 +1532,11 @@ public class MRAppMaster extends CompositeService {
   @SuppressWarnings("unchecked")
   protected void startJobs() {
     /** create a job-start event to get this ball rolling */
+    // todo: 创建一个 JobStartEvent 事件  因为是事件驱动模型
     JobEvent startJobEvent = new JobStartEvent(job.getID(),
         recoveredJobStartTime);
     /** send the job-start event. this triggers the job execution. */
+    // 将任务事件 发送出去  dispatcher 的实现是 AsyncDispatcher
     dispatcher.getEventHandler().handle(startJobEvent);
   }
 
@@ -1688,6 +1691,7 @@ public class MRAppMaster extends CompositeService {
       String jobUserName = System
           .getenv(ApplicationConstants.Environment.USER.name());
       conf.set(MRJobConfig.USER_NAME, jobUserName);
+      // todo: 传递基本信息 配置和用户信息 c初始化 和启动 appMaster
       initAndStartAppMaster(appMaster, conf, jobUserName);
     } catch (Throwable t) {
       LOG.error("Error starting MRAppMaster", t);
@@ -1757,7 +1761,9 @@ public class MRAppMaster extends CompositeService {
     appMasterUgi.doAs(new PrivilegedExceptionAction<Object>() {
       @Override
       public Object run() throws Exception {
+        // 初始化 appMaster
         appMaster.init(conf);
+        // 启动 appMaster
         appMaster.start();
         if(appMaster.errorHappenedShutDown) {
           throw new IOException("Was asked to shut down.");

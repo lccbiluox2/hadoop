@@ -139,9 +139,12 @@ class JobSubmitter {
   JobStatus submitJobInternal(Job job, Cluster cluster) 
   throws ClassNotFoundException, InterruptedException, IOException {
 
-    //validate the jobs output specs 
+    //validate the jobs output specs
+    // 检测作业输出的规范，比如配置的路径是否存在
     checkSpecs(job);
 
+    //aw:获取作业准备区路径,用于作业及相关资源的提交存放,比如: jar、切片信息、配置信息等
+    //默认是/tmp/hadoop-yarn/staging/提交作业用户名/ .staging
     Configuration conf = job.getConfiguration();
     addMRFrameworkToDistributedCache(conf);
 
@@ -149,15 +152,19 @@ class JobSubmitter {
     //configure the command line options correctly on the submitting dfs
     InetAddress ip = InetAddress.getLocalHost();
     if (ip != null) {
+      // 记录提交作业的ip和hostname
       submitHostAddress = ip.getHostAddress();
       submitHostName = ip.getHostName();
       conf.set(MRJobConfig.JOB_SUBMITHOST,submitHostName);
       conf.set(MRJobConfig.JOB_SUBMITHOSTADDR,submitHostAddress);
     }
+    // 获取jobId
     JobID jobId = submitClient.getNewJobID();
     job.setJobID(jobId);
     Path submitJobDir = new Path(jobStagingArea, jobId.toString());
     JobStatus status = null;
+
+    // 设置一些参数
     try {
       conf.set(MRJobConfig.USER_NAME,
           UserGroupInformation.getCurrentUser().getShortUserName());
@@ -191,12 +198,15 @@ class JobSubmitter {
                 "data spill is enabled");
       }
 
+      //aw:拷贝作业相关的资源文件到submitJobDir作业准备区，比如: -libjars, -files, -archives
       copyAndConfigureFiles(job, submitJobDir);
 
+      // 创建job.xml用于保存作业的信息
       Path submitJobFile = JobSubmissionFiles.getJobConfPath(submitJobDir);
       
       // Create the splits for the job
       LOG.debug("Creating splits at " + jtFs.makeQualified(submitJobDir));
+      //aw:，生成本次作业的输入切片信息，并把切片信息写入作业准备区submitJobDir
       int maps = writeSplits(job, submitJobDir);
       conf.setInt(MRJobConfig.NUM_MAPS, maps);
       LOG.info("number of splits:" + maps);
@@ -248,6 +258,7 @@ class JobSubmitter {
       // Now, actually submit the job (using the submit name)
       //
       printTokens(jobId, job.getCredentials());
+      // todo: 最终提交任务的方法
       status = submitClient.submitJob(
           jobId, submitJobDir.toString(), job.getCredentials());
       if (status != null) {

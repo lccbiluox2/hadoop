@@ -171,6 +171,8 @@ class YarnChild {
           // use job-specified working directory
           setEncryptedSpillKeyIfRequired(taskFinal);
           FileSystem.get(job).setWorkingDirectory(job.getWorkingDirectory());
+
+          // todo: 最终运行任务方法
           taskFinal.run(job, umbilical); // run the task
           return null;
         }

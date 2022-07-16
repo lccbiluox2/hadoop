@@ -274,6 +274,7 @@ public class ApplicationClientProtocolPBServiceImpl implements ApplicationClient
       SubmitApplicationRequestProto proto) throws ServiceException {
     SubmitApplicationRequestPBImpl request = new SubmitApplicationRequestPBImpl(proto);
     try {
+      // 这里这个real 此时服务端提交应用程序
       SubmitApplicationResponse response = real.submitApplication(request);
       return ((SubmitApplicationResponsePBImpl)response).getProto();
     } catch (YarnException e) {

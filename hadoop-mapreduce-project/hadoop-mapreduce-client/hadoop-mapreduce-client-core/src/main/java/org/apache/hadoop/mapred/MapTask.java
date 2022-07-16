@@ -312,21 +312,37 @@ public class MapTask extends Task {
     throws IOException, ClassNotFoundException, InterruptedException {
     this.umbilical = umbilical;
 
+    // 判断当前任务是不是mapTask
     if (isMapTask()) {
       // If there are no reducers then there won't be any sort. Hence the map 
       // phase will govern the entire attempt's progress.
+
+      // aw: 如果reducetask的个数为也就意味着程序没有reducer阶段mapper的输出就是程序最终的输出
+      //这样的话，就没有必要进行shuffle了。
+
       if (conf.getNumReduceTasks() == 0) {
+        // map任务占据整个mapTask的100%
         mapPhase = getProgress().addPhase("map", 1.0f);
       } else {
         // If there are reducers then the entire attempt's progress will be 
         // split between the map phase (67%) and the sort phase (33%).
+
+        // 如果有reducetask的话，map阶段占据67%，sort阶段 占据33%
+        // 为什么要sort因为要shuffle 给reducetask
         mapPhase = getProgress().addPhase("map", 0.667f);
         sortPhase  = getProgress().addPhase("sort", 0.333f);
       }
     }
+    /**
+     * 创建一个TaskReporter并启动通信线程
+     * //是否使用新的API mapred.mapper.new-api控制一般不需要用户显示设置
+     * 但是在提交任务的时候MR框架会自己进行选择
+     * //默认情况下，使用的都是新的API,除非特别指定了使用old API 详细见job. setUseNewAPI()
+     */
     TaskReporter reporter = startReporter(umbilical);
  
     boolean useNewApi = job.getUseNewMapper();
+    // 初始化方法
     initialize(job, getJobID(), reporter, useNewApi);
 
     // check if it is a cleanupJobTask
@@ -343,9 +359,11 @@ public class MapTask extends Task {
       return;
     }
 
+    // 如果使用心得api 调用这个
     if (useNewApi) {
       runNewMapper(job, splitMetaInfo, umbilical, reporter);
     } else {
+      // 如果是旧的api使用这个
       runOldMapper(job, splitMetaInfo, umbilical, reporter);
     }
     done(umbilical, reporter);
@@ -749,24 +767,29 @@ public class MapTask extends Task {
                     ) throws IOException, ClassNotFoundException,
                              InterruptedException {
     // make a task context so we can get the classes
+    /// 任务运行的上下文
     org.apache.hadoop.mapreduce.TaskAttemptContext taskContext =
       new org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl(job, 
                                                                   getTaskID(),
                                                                   reporter);
     // make a mapper
+    //通过反射创建mapper实例，该mapper 就是我们通过job. setMapperClass设置的
     org.apache.hadoop.mapreduce.Mapper<INKEY,INVALUE,OUTKEY,OUTVALUE> mapper =
       (org.apache.hadoop.mapreduce.Mapper<INKEY,INVALUE,OUTKEY,OUTVALUE>)
         ReflectionUtils.newInstance(taskContext.getMapperClass(), job);
     // make the input format
+    // 通过反射创建 input format
     org.apache.hadoop.mapreduce.InputFormat<INKEY,INVALUE> inputFormat =
       (org.apache.hadoop.mapreduce.InputFormat<INKEY,INVALUE>)
         ReflectionUtils.newInstance(taskContext.getInputFormatClass(), job);
     // rebuild the input split
+    //aw maptask 获取到分配给自己的输入切片详情信息包括切片的位置， 切片的起始偏移量
     org.apache.hadoop.mapreduce.InputSplit split = null;
     split = getSplitDetails(new Path(splitIndex.getSplitLocation()),
         splitIndex.getStartOffset());
     LOG.info("Processing split: " + split);
 
+    |// 创建RecordReader用于读取数据
     org.apache.hadoop.mapreduce.RecordReader<INKEY,INVALUE> input =
       new NewTrackingRecordReader<INKEY,INVALUE>
         (split, inputFormat, reporter, taskContext);
@@ -775,10 +798,13 @@ public class MapTask extends Task {
     org.apache.hadoop.mapreduce.RecordWriter output = null;
     
     // get an output object
+    // /創建outputCollector用fmaptask迯理結果的輸出
     if (job.getNumReduceTasks() == 0) {
+      //  如果没有reducetask宜接凋用最終的輸出器
       output = 
         new NewDirectOutputCollector(taskContext, job, umbilical, reporter);
     } else {
+      //aw:如果有reducetask 則需要迸行shuffle
       output = new NewOutputCollector(taskContext, job, umbilical, reporter);
     }
 
@@ -794,8 +820,15 @@ public class MapTask extends Task {
           new WrappedMapper<INKEY, INVALUE, OUTKEY, OUTVALUE>().getMapContext(
               mapContext);
 
+    // todo: mapTask核心逻辑
     try {
+      //aw maptask初始化的时候调用-次默认实现是L ineRecordReader中的initialize方法
+      //.里面描述了如何从切片读取数据
       input.initialize(split, mapperContext);
+
+      //调用Mapper的run方法开始map阶段数据处理
+      //里面描达了每当L ineRecordReader读取一行数据返回kv 键值对
+      //就调用一-次用户编写的map方法进行- 次业务逻辑处理
       mapper.run(mapperContext);
       mapPhase.complete();
       setPhase(TaskStatus.Phase.SORT);

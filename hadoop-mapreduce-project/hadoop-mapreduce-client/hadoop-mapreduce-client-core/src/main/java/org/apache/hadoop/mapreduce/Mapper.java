@@ -142,7 +142,9 @@ public class Mapper<KEYIN, VALUEIN, KEYOUT, VALUEOUT> {
   public void run(Context context) throws IOException, InterruptedException {
     setup(context);
     try {
+     //如果还有 下一个输入kV对
       while (context.nextKeyValue()) {
+        //aw:继续调用map方法处理该map方法通常在用户自定义的mapper中被重写 也就是整个mapper阶段业务逻辑实现的地方
         map(context.getCurrentKey(), context.getCurrentValue(), context);
       }
     } finally {

@@ -105,6 +105,7 @@ public class Cluster {
   public Cluster(InetSocketAddress jobTrackAddr, Configuration conf) 
       throws IOException {
     this.conf = conf;
+    // 获取当前用户
     this.ugi = UserGroupInformation.getCurrentUser();
     initialize(jobTrackAddr, conf);
   }
@@ -126,9 +127,12 @@ public class Cluster {
           + provider.getClass().getName());
       ClientProtocol clientProtocol = null;
       try {
+        // 根据不同 返回不同的
         if (jobTrackAddr == null) {
+          // LocalClientProtocolProvider
           clientProtocol = provider.create(conf);
         } else {
+          // YarnClientProtocolProvider
           clientProtocol = provider.create(jobTrackAddr, conf);
         }
 

@@ -321,13 +321,16 @@ public class YARNRunner implements ClientProtocol {
     
     addHistoryToken(ts);
 
+    // 封装本地资源信息
     ApplicationSubmissionContext appContext =
       createApplicationSubmissionContext(conf, jobSubmitDir, ts);
 
     // Submit to ResourceManager
     try {
+      // 提交任务 获取applicationId
       ApplicationId applicationId =
           resMgrDelegate.submitApplication(appContext);
+
 
       ApplicationReport appMaster = resMgrDelegate
           .getApplicationReport(applicationId);
@@ -442,9 +445,11 @@ public class YARNRunner implements ClientProtocol {
 
   private List<String> setupAMCommand(Configuration jobConf) {
     List<String> vargs = new ArrayList<>(8);
+    // java启动命令
     vargs.add(MRApps.crossPlatformifyMREnv(jobConf, Environment.JAVA_HOME)
         + "/bin/java");
 
+    // 默认临时目录
     Path amTmpDir =
         new Path(MRApps.crossPlatformifyMREnv(conf, Environment.PWD),
             YarnConfiguration.DEFAULT_CONTAINER_TEMP_DIR);
@@ -565,9 +570,10 @@ public class YARNRunner implements ClientProtocol {
   public ApplicationSubmissionContext createApplicationSubmissionContext(
       Configuration jobConf, String jobSubmitDir, Credentials ts)
       throws IOException {
+    // 获取 applicationId
     ApplicationId applicationId = resMgrDelegate.getApplicationId();
 
-    // Setup LocalResources
+    // Setup LocalResources 封装本地资源
     Map<String, LocalResource> localResources =
         setupLocalResources(jobConf, jobSubmitDir);
 
@@ -578,6 +584,7 @@ public class YARNRunner implements ClientProtocol {
         ByteBuffer.wrap(dob.getData(), 0, dob.getLength());
 
     // Setup ContainerLaunchContext for AM container
+    // 设置运行applicationMaster运行的命令
     List<String> vargs = setupAMCommand(jobConf);
     ContainerLaunchContext amContainer = setupContainerLaunchContextForAM(
         jobConf, localResources, securityTokens, vargs);
