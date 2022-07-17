@@ -235,8 +235,10 @@ public class CallQueueManager<E extends Schedulable>
    */
   @Override
   public void put(E e) throws InterruptedException {
+    // 如果是是阻塞的
     if (!isClientBackoffEnabled()) {
       putRef.get().put(e);
+      // 如果是阻塞的
     } else if (shouldBackOff(e)) {
       throwBackoff();
     } else {

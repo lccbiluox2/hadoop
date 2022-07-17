@@ -101,9 +101,26 @@ public class ProtobufRpcEngine implements RpcEngine {
       AtomicBoolean fallbackToSimpleAuth, AlignmentContext alignmentContext)
       throws IOException {
 
+    /**
+     注释: 当需要发送一个RPC 请求的时候，就会调用Invoker. invoke() 方法
+     Invoker + RpcCalL 其实和我做的抽象叫做Request 有点类似
+     完整抽象:
+     proxy . method()内 部其实就是调用InvocatioinHandLer 的invoke ( )
+     这是JDK动态代理机制的工作机制
+     层级总结:
+     1、proxy . method()
+     2、invoker . invoke()
+     3、cLient. caLL()
+     最后终于发送一个网络请求给服务端
+
+     这里动态代理，所以我们可以直接看invoke方法
+     */
     final Invoker invoker = new Invoker(protocol, addr, ticket, conf, factory,
         rpcTimeout, connectionRetryPolicy, fallbackToSimpleAuth,
         alignmentContext);
+    /**
+     * 通过 java 提供的代理 代理对象
+     */
     return new ProtocolProxy<T>(protocol, (T) Proxy.newProxyInstance(
         protocol.getClassLoader(), new Class[]{protocol}, invoker), false);
   }
@@ -232,6 +249,9 @@ public class ProtobufRpcEngine implements RpcEngine {
       final Message theRequest = (Message) args[1];
       final RpcWritable.Buffer val;
       try {
+        /**
+         * 通过客户端发送call请求，内部就是发送rpc请求
+         */
         val = (RpcWritable.Buffer) client.call(RPC.RpcKind.RPC_PROTOCOL_BUFFER,
             constructRpcRequest(method, theRequest), remoteId,
             fallbackToSimpleAuth, alignmentContext);

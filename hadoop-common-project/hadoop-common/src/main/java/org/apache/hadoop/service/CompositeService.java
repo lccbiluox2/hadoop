@@ -47,6 +47,9 @@ public class CompositeService extends AbstractService {
    */
   protected static final boolean STOP_ONLY_STARTED_SERVICES = false;
 
+  /**
+   * 非常重要的一个类，存储service列表
+   */
   private final List<Service> serviceList = new ArrayList<Service>();
 
   public CompositeService(String name) {

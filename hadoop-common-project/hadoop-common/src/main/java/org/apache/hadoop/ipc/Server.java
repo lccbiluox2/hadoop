@@ -1038,6 +1038,16 @@ public abstract class Server {
       ResponseParams responseParams = new ResponseParams();
 
       try {
+        /**
+         * 注释:执行 RPC请求的处理
+         * 1、call方法执行RPC请求的真正处理，内部就是通过反射调用服务实例的对应同名方法，得到结果
+         * 2、value 就是call 方法的执行结果
+         *
+         * 补充一点:
+         * value会被存储在call 中，所以只要 call 中的Writable rv不为空，则表示这个call 已经处理过了
+         * 再补充一点:
+         * 这个call就会被丢到对应的connection对象的响应队列中
+         */
         value = call(
             rpcKind, connection.protocolName, rpcRequest, timestampNanos);
       } catch (Throwable e) {
@@ -1055,6 +1065,9 @@ public abstract class Server {
         startNanos = Time.monotonicNowNanos();
 
         setResponseFields(value, responseParams);
+        /**
+         * 返回响应给客户端
+         */
         sendResponse();
 
         deltaNanos = Time.monotonicNowNanos() - startNanos;
@@ -1235,15 +1248,21 @@ public abstract class Server {
           bindAddress + "/" + this.listenPort);
       // create a selector;
       selector= Selector.open();
+
+      /**
+       * 创建和初始化Reader线程
+       */
       readers = new Reader[readThreads];
       for (int i = 0; i < readThreads; i++) {
         Reader reader = new Reader(
             "Socket Reader #" + (i + 1) + " for port " + port);
         readers[i] = reader;
+        // 启动reader线程
         reader.start();
       }
 
       // Register accepts on the server socket with the selector.
+      // NIO 服务端注册 OP_ACCEPT 事件,等待NIO的客户端的连接请求发过来
       acceptChannel.register(selector, SelectionKey.OP_ACCEPT);
       this.setName("IPC Server listener on " + port);
       this.setDaemon(true);
@@ -1281,6 +1300,7 @@ public abstract class Server {
       }
 
       private synchronized void doRunLoop() {
+        // 如果退出这个循环 表示这个server不运行了
         while (running) {
           SelectionKey key = null;
           try {
@@ -1293,12 +1313,18 @@ public abstract class Server {
             }
             readSelector.select();
 
+            /**
+             *
+             */
             Iterator<SelectionKey> iter = readSelector.selectedKeys().iterator();
             while (iter.hasNext()) {
               key = iter.next();
               iter.remove();
               try {
                 if (key.isReadable()) {
+                  /**
+                   * 完成连接
+                   */
                   doRead(key);
                 }
               } catch (CancelledKeyException cke) {
@@ -1412,7 +1438,10 @@ public abstract class Server {
     
     void doAccept(SelectionKey key) throws InterruptedException, IOException,  OutOfMemoryError {
       ServerSocketChannel server = (ServerSocketChannel) key.channel();
+      // 这就是存储在服务端中客户端的抽象
       SocketChannel channel;
+
+      // 接收连接
       while ((channel = server.accept()) != null) {
 
         channel.configureBlocking(false);
@@ -1430,8 +1459,18 @@ public abstract class Server {
           connectionManager.droppedConnections.getAndIncrement();
           continue;
         }
+        // 绑定
         key.attach(c);  // so closeCurrentConnection can get the object
         reader.addConnection(c);
+        /**
+         * 最终的结果，完成了链接之后
+         * 把SocketChanneL 和Reader 和Connection 三方绑一-一关系
+         *
+         * SelectionKey完成和上述三个对象的绑定
+         * 问题:此时已经完成了链接，肯定就是等待客户端发送数据过来
+         * 但是此时，并没有发现给SocketChannel 注册OP_ READ 事件
+         *  -定在Reader 线程的run() 方法中
+         */
       }
     }
 
@@ -2365,6 +2404,7 @@ public abstract class Server {
           data = ByteBuffer.allocate(dataLength);
         }
         // Now read the RPC packet
+        // todo: 读取数据 这个ByteBuffer data 就是客户端发送过来的数据
         count = channelRead(channel, data);
         
         if (data.remaining() == 0) {
@@ -2373,6 +2413,9 @@ public abstract class Server {
           ByteBuffer requestData = data;
           data = null; // null out in case processOneRpc throws.
           boolean isHeaderRead = connectionContextRead;
+          /**
+           * todo: 处理一个rpc
+           */
           processOneRpc(requestData);
           // the last rpc-request we processed could have simply been the
           // connectionContext; if so continue to read the first RPC.
@@ -2642,6 +2685,7 @@ public abstract class Server {
         }
         // use the wrapped exception if there is one.
         Throwable t = (rse.getCause() != null) ? rse.getCause() : rse;
+        // todo: 封装一个call对象
         final RpcCall call = new RpcCall(this, callId, retry);
         setupResponse(call,
             rse.getRpcStatusProto(), rse.getRpcErrorCodeProto(), null,
@@ -2745,6 +2789,7 @@ public abstract class Server {
                 .build();
       }
 
+      // todo: 封装一个rpcCall
       RpcCall call = new RpcCall(this, header.getCallId(),
           header.getRetryCount(), rpcRequest,
           ProtoUtil.convert(header.getRpcKind()),
@@ -2779,6 +2824,7 @@ public abstract class Server {
       }
 
       try {
+        // todo: 调用内置方法
         internalQueueCall(call);
       } catch (RpcServerException rse) {
         throw rse;
@@ -2927,6 +2973,7 @@ public abstract class Server {
 
   private void internalQueueCall(Call call)
       throws IOException, InterruptedException {
+    // todo: 放到队列
     internalQueueCall(call, true);
   }
 
@@ -2934,6 +2981,7 @@ public abstract class Server {
       throws IOException, InterruptedException {
     try {
       // queue the call, may be blocked if blocking is true.
+      // 这里会根据阻塞与非阻塞 采用不同的方法
       if (blocking) {
         callQueue.put(call);
       } else {
@@ -2977,6 +3025,7 @@ public abstract class Server {
         boolean connDropped = true;
 
         try {
+          // todo: handler线程消费 callQueue 队列
           call = callQueue.take(); // pop the queue; maybe blocked here
           startTimeNanos = Time.monotonicNowNanos();
           if (alignmentContext != null && call.isCallCoordinated() &&
@@ -3014,6 +3063,7 @@ public abstract class Server {
           if (remoteUser != null) {
             remoteUser.doAs(call);
           } else {
+            // todo: call处理
             call.run();
           }
         } catch (InterruptedException e) {
@@ -3166,6 +3216,11 @@ public abstract class Server {
     listener = new Listener(port);
     // set the server port to the default listener port.
     this.port = listener.getAddress().getPort();
+    /**
+     * 注释:
+     * 链接管理器初始化 维护映射关系:
+     * SocketChannel + Connection + SelectionKey + Readre
+     */
     connectionManager = new ConnectionManager();
     this.rpcMetrics = RpcMetrics.create(this, conf);
     this.rpcDetailedMetrics = RpcDetailedMetrics.create(this.port);
@@ -3182,6 +3237,9 @@ public abstract class Server {
         CommonConfigurationKeysPublic.IPC_SERVER_PURGE_INTERVAL_MINUTES_DEFAULT));
 
     // Create the responder here
+    /**
+     * 创建 response线程
+     */
     responder = new Responder();
     
     if (secretManager != null || UserGroupInformation.isSecurityEnabled()) {
@@ -3446,7 +3504,13 @@ public abstract class Server {
 
   /** Starts the service.  Must be called before any calls will be handled. */
   public synchronized void start() {
+    /**
+     * 启动responder线程
+     */
     responder.start();
+    /**
+     * 启动listener线程
+     */
     listener.start();
     if (auxiliaryListenerMap != null && auxiliaryListenerMap.size() > 0) {
       for (Listener newListener : auxiliaryListenerMap.values()) {
@@ -3454,6 +3518,9 @@ public abstract class Server {
       }
     }
 
+    /**
+     * 创建一堆Handler线程 并且启动
+     */
     handlers = new Handler[handlerCount];
     
     for (int i = 0; i < handlerCount; i++) {
