@@ -1399,13 +1399,22 @@ public class Client implements AutoCloseable {
   Writable call(RPC.RpcKind rpcKind, Writable rpcRequest,
       ConnectionId remoteId, int serviceClass,
       AtomicBoolean fallbackToSimpleAuth) throws IOException {
+    // 把你的请求语意封装成调用对象
     final Call call = createCall(rpcKind, rpcRequest);
+    /**
+     * 获取连接 Connection 是一个线程 run 方法的核心逻辑是等待接收结果
+     * 建立RPC客户端到服务端的连接
+     */
     final Connection connection = getConnection(remoteId, call, serviceClass,
         fallbackToSimpleAuth);
 
     try {
       checkAsyncCall();
       try {
+        /**
+         * 发送请求
+         * 发送请求数据给服务端，NIO 服务端的Reader 线程响应
+         */
         connection.sendRpcRequest(call);                 // send the rpc request
       } catch (RejectedExecutionException e) {
         throw new IOException("connection has been closed", e);

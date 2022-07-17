@@ -582,6 +582,12 @@ public class RPC {
     if (UserGroupInformation.isSecurityEnabled()) {
       SaslRpcServer.init(conf);
     }
+     /**
+      * 注释:
+      * ProtocolEngine 有2种实现
+      * 1. 基于 Writable 的实现
+      * 2、基于 Protobuf 做的实现
+      */
     return getProtocolEngine(protocol, conf).getProxy(protocol, clientVersion,
         addr, ticket, conf, factory, rpcTimeout, connectionRetryPolicy,
         fallbackToSimpleAuth);
@@ -988,6 +994,7 @@ public class RPC {
     @Override
     public Writable call(RPC.RpcKind rpcKind, String protocol,
         Writable rpcRequest, long receiveTime) throws Exception {
+      // 继续调用
       return getRpcInvoker(rpcKind).call(this, protocol, rpcRequest,
           receiveTime);
     }
