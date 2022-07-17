@@ -1510,6 +1510,9 @@ public abstract class Server {
       LOG.info(Thread.currentThread().getName() + ": starting");
       SERVER.set(Server.this);
       try {
+        /**
+         * todo： Responder 线程核心逻辑
+         */
         doRunLoop();
       } finally {
         LOG.info("Stopping " + Thread.currentThread().getName());
@@ -1534,7 +1537,9 @@ public abstract class Server {
             SelectionKey key = iter.next();
             iter.remove();
             try {
+              // todo: 如果有数据需要写
               if (key.isWritable()) {
+                // 执行异步写入
                 doAsyncWrite(key);
               }
             } catch (CancelledKeyException cke) {
@@ -1594,6 +1599,20 @@ public abstract class Server {
       }
     }
 
+    /**
+     * 注释:
+     * 大体上，Call对象的响应结果的返回的流程:
+     * 1、如果responseQueue 的长度为1,也就表示不忙，通过同步方式，直接返回响应给客户端，如果忙，加入到队列就完事
+     * 2、调用processResponse 开始返回:
+     * .  1、先尝试返回数据，如果没有一次性把所有数据返回给客户端
+     * .  2、把这个RpcCall 继续加入到responseQueue 的头部
+     * .  3、注册一个OP_ WRITE事件，
+     * Responder线程会响应这个事件,然后继续从responseQueue 中获取头部RpcCall 来返回数据
+     * 给客户端
+     *
+     * @param key
+     * @throws IOException
+     */
     private void doAsyncWrite(SelectionKey key) throws IOException {
       RpcCall call = (RpcCall)key.attachment();
       if (call == null) {
@@ -1604,6 +1623,7 @@ public abstract class Server {
       }
 
       synchronized(call.connection.responseQueue) {
+        // todo: 这里再次调用了 processResponse 方法
         if (processResponse(call.connection.responseQueue, false)) {
           try {
             key.interestOps(0);
@@ -1657,8 +1677,8 @@ public abstract class Server {
             return true;              // no more data for this channel.
           }
           //
-          // Extract the first call
-          //
+          // Extract the first cal
+          // 获取队列中的 RpcCall
           call = responseQueue.removeFirst();
           SocketChannel channel = call.connection.channel;
           if (LOG.isDebugEnabled()) {
@@ -1666,13 +1686,17 @@ public abstract class Server {
           }
           //
           // Send as much data as we can in the non-blocking fashion
-          //
+          // todo: 直接写出给客户端
           int numBytes = channelWrite(channel, call.rpcResponse);
+          // 如果小于0 那么证明一次就写完了 那么直接返回
           if (numBytes < 0) {
             return true;
           }
+
+          // 如果一次就写完了
           if (!call.rpcResponse.hasRemaining()) {
             //Clear out the response buffer so it can be collected
+            // 写完了，那么就将这个设置为空，返回对象没用了呀，所以值为空
             call.rpcResponse = null;
             call.connection.decRpcCount();
             if (numElements == 1) {    // last call fully processes.
@@ -1685,6 +1709,7 @@ public abstract class Server {
                   + " Wrote " + numBytes + " bytes.");
             }
           } else {
+            // todo: 如果一次没写完，则加入RpcCall到响应队列
             //
             // If we were unable to write the entire response out, then 
             // insert in Selector queue. 
@@ -1700,6 +1725,9 @@ public abstract class Server {
                 // Wakeup the thread blocked on select, only then can the call 
                 // to channel.register() complete.
                 writeSelector.wakeup();
+                /**
+                 * response 注册 OP_WRITE 事件
+                 */
                 channel.register(writeSelector, SelectionKey.OP_WRITE, call);
               } catch (ClosedChannelException e) {
                 //Its ok. channel might be closed else where.
@@ -1735,10 +1763,27 @@ public abstract class Server {
         if (call.connection.useWrap) {
           wrapWithSasl(call);
         }
+          /**
+           * 加入到 Connection 的响应队列
+           */
         call.connection.responseQueue.addLast(call);
+          /**
+           * 注释:
+           * 如果响应队列中，只有刚才加入进去的需响应的RpcCall, 则证明比较闲，
+           * 那么使用同步方式来进行响应
+           * 如果队列大于1，则表示队列中，还有未响应的RpcCall 则通过异步方式来进行响应
+           */
         if (call.connection.responseQueue.size() == 1) {
+            // 同步处理
           processResponse(call.connection.responseQueue, true);
+        }else {
+            // TODO.如果确实要走这个 else
+            //  表示Responder 线程，正在为这个Connection 上的其他的 RpcCall 做响应返回
+            // 此时加进去队列的RpcCaLl乖乖等待就行
         }
+
+          // 如果Connection 不忙，则通过同步方式来返回响应
+          // 如果Connection 繁忙，则通过异步方式来返回
       }
     }
 
