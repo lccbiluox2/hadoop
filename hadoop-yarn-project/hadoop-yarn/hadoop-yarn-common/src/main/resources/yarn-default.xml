@@ -56,6 +56,9 @@
   </property>    
   
   <property>
+<!--    yarn.resourcemanager.address：ResourceManager 对客户端暴露的地址。
+客户端通过该地址向RM提交应用程序，杀死应用程序等。
+默认值：${yarn.resourcemanager.hostname}:8032-->
     <description>The address of the applications manager interface in the RM.</description>
     <name>yarn.resourcemanager.address</name>
     <value>${yarn.resourcemanager.hostname}:8032</value>
@@ -144,12 +147,17 @@
     <name>yarn.resourcemanager.principal</name>
   </property>
 
+<!--  ResourceManager 对ApplicationMaster暴露的访问地址。ApplicationMaster
+  通过该地址向RM申请资源、释放资源等。
+  默认值：${yarn.resourcemanager.hostname}:8030
+  -->
   <property>
     <description>The address of the scheduler interface.</description>
     <name>yarn.resourcemanager.scheduler.address</name>
     <value>${yarn.resourcemanager.hostname}:8030</value>
   </property>
 
+<!--  处理来自ApplicationMaster的RPC请求的Handler数目。默认值：50-->
   <property>
     <description>Number of threads to handle scheduler interface.</description>
     <name>yarn.resourcemanager.scheduler.client.thread-count</name>
@@ -217,6 +225,9 @@
       <value>HTTP_ONLY</value>
   </property>
 
+<!--  yarn.resourcemanager.webapp.address：ResourceManager对外web ui地址。
+用户可通过该地址在浏览器中查看集群各类信息。
+默认值：${yarn.resourcemanager.hostname}:8088-->
   <property>
     <description>
       The http address of the RM web application.
@@ -285,6 +296,10 @@
     <value>false</value>
   </property>
 
+<!--  yarn.resourcemanager.resource-tracker.address：ResourceManager
+对NodeManager暴露的地址.。NodeManager通过该地址向RM汇报心跳，领取任务等。
+默认值：${yarn.resourcemanager.hostname}:8031-->
+
   <property>
     <name>yarn.resourcemanager.resource-tracker.address</name>
     <value>${yarn.resourcemanager.hostname}:8031</value>
@@ -313,6 +328,9 @@
     <value>*</value>
   </property>
 
+<!--  yarn.resourcemanager.admin.address：ResourceManager
+对管理员暴露的访问地址。管理员通过该地址向RM发送管理命令等。
+默认值：${yarn.resourcemanager.hostname}:8033-->
   <property>
     <description>The address of the RM admin interface.</description>
     <name>yarn.resourcemanager.admin.address</name>
@@ -384,6 +402,9 @@
     <value>600000</value>
   </property>
 
+<!--  NodeManager黑白名单。如果发现若干个NodeManager存在问题，比如故障率很高，
+任务运行失败率高，则可以将之加入黑名单中。注意，这两个配置参数可以动态生效。
+（调用一个refresh命令即可）。默认值：“”-->
   <property>
     <description>Path to file with nodes to include.</description>
     <name>yarn.resourcemanager.nodes.include-path</name>
@@ -402,17 +423,26 @@
     <value>-1</value>
   </property>
 
+<!--  处理来自NodeManager的RPC请求的Handler数目。默认值：50-->
   <property>
     <description>Number of threads to handle resource tracker calls.</description>
     <name>yarn.resourcemanager.resource-tracker.client.thread-count</name>
     <value>50</value>
   </property>
 
+<!--  yarn.resourcemanager.scheduler.class：启用的资源调度器主类。
+目前可用的有FIFO、Capacity Scheduler和Fair Scheduler。
+默认值：org.apache.hadoop.yarn.server.resourcemanager.scheduler.capacity.CapacityScheduler-->
+
   <property>
     <description>The class to use as the resource scheduler.</description>
     <name>yarn.resourcemanager.scheduler.class</name>
     <value>org.apache.hadoop.yarn.server.resourcemanager.scheduler.capacity.CapacityScheduler</value>
   </property>
+
+<!--  yarn.scheduler.minimum-allocation-mb/ yarn.scheduler.maximum-allocation-mb：
+单个可申请的最小/最大内存资源量。比如设置为1024和3072，则运行MapRedce作业时，
+每个Task最少可申请1024MB内存，最多可申请3072MB内存。默认值：1024/8192-->
 
   <property>
     <description>The minimum allocation for every container request at the RM
@@ -431,6 +461,9 @@
     <value>8192</value>
   </property>
 
+<!--  单个可申请的最小/最大虚拟CPU个数。比如设置为1和4，则运行MapRedce作业时，
+每个Task最少可申请1个虚拟CPU，最多可申请4个虚拟CPU。什么是虚拟CPU，
+可阅读我的这篇文章：“YARN 资源调度器剖析”。默认值：1/32-->
   <property>
     <description>The minimum allocation for every container request at the RM
     in terms of virtual CPU cores. Requests lower than this will be set to the
@@ -861,6 +894,7 @@
     <value>86400</value>
   </property>
 
+<!--  NodeManager心跳间隔。默认值：1000（毫秒）-->
   <property>
     <description>The heart-beat interval in milliseconds for every NodeManager in the cluster.</description>
     <name>yarn.resourcemanager.nodemanagers.heartbeat-interval-ms</name>
@@ -1284,6 +1318,8 @@
     <value>/etc/krb5.keytab</value>
   </property>
 
+<!--  中间结果存放位置，类似于1.0中的mapred.local.dir。注意，这个参数通常会配置多个目录，
+已分摊磁盘IO负载。默认值：${hadoop.tmp.dir}/nm-local-dir-->
   <property>
     <description>List of directories to store localized files in. An 
       application's localized file directory will be found in:
@@ -1377,6 +1413,7 @@
     <value>INFO</value>
   </property>
 
+<!--  日志存放地址（可配置多个目录）。默认值：${yarn.log.dir}/userlogs-->
   <property>
     <description>
       Where to store container logs. An application's localized log directory
@@ -1489,6 +1526,7 @@
     <value>600000</value>
   </property>
 
+<!--  NodeManager上日志最多存放时间（不启用日志聚集功能时有效）。默认值：10800（3小时）-->
   <property>
     <description>Time in seconds to retain user logs. Only applicable if
     log aggregation is disabled
@@ -1538,6 +1576,10 @@
     <value>true</value>
   </property>
 
+<!--  NodeManager总的可用物理内存。注意，该参数是不可修改的，一旦设置，整个运行过程中
+不可动态修改。另外，该参数的默认值是8192MB，即使你的机器内存不够8192MB，
+YARN也会按照这些内存来使用（傻不傻？），因此，这个值通过一定要配置。
+不过，Apache已经正在尝试将该参数做成可动态修改的。默认值：8192-->
   <property>
     <description>Amount of physical memory, in MB, that can be allocated 
     for containers. If set to -1 and
@@ -1606,6 +1648,7 @@
     <value>true</value>
   </property>
 
+<!--  每使用1MB物理内存，最多可用的虚拟内存数。默认值：2.1-->
   <property>
     <description>Ratio between virtual memory to physical memory when
     setting memory limits for containers. Container allocations are
@@ -1616,6 +1659,7 @@
     <value>2.1</value>
   </property>
 
+<!--  NodeManager总的可用虚拟CPU个数。默认值：8-->
   <property>
     <description>Number of vcores that can be allocated
     for containers. This is used by the RM scheduler when allocating
@@ -2313,6 +2357,7 @@
     <value></value>
   </property>
 
+<!--  NodeManager上运行的附属服务。需配置成mapreduce_shuffle，才可运行MapReduce程序。默认值：“”-->
   <property>
     <description>A comma separated list of services where service name should only
       contain a-zA-Z0-9_ and can not start with numbers</description>
