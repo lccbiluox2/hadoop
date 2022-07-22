@@ -356,13 +356,17 @@ public class RMAppManager implements EventHandler<RMAppManagerEvent>,
   protected void submitApplication(
       ApplicationSubmissionContext submissionContext, long submitTime,
       String user) throws YarnException {
+    // todo: 获取 ApplicationId
     ApplicationId applicationId = submissionContext.getApplicationId();
 
     // Passing start time as -1. It will be eventually set in RMAppImpl
     // constructor.
+    //
+    // 起始时间为-1。它最终将在RMAppImpl构造函数中设置。
     RMAppImpl application = createAndPopulateNewRMApp(
         submissionContext, submitTime, user, false, -1, null);
     try {
+      // todo: 如果用户开启了安全认证
       if (UserGroupInformation.isSecurityEnabled()) {
         this.rmContext.getDelegationTokenRenewer()
             .addApplicationAsync(applicationId,
@@ -374,6 +378,9 @@ public class RMAppManager implements EventHandler<RMAppManagerEvent>,
         // Dispatcher is not yet started at this time, so these START events
         // enqueued should be guaranteed to be first processed when dispatcher
         // gets started.
+        //
+        // 此时Dispatcher还没有启动，所以应该保证在Dispatcher启动时首先处理
+        // 这些进入队列的START事件。
         this.rmContext.getDispatcher().getEventHandler()
             .handle(new RMAppEvent(applicationId, RMAppEventType.START));
       }
@@ -416,6 +423,7 @@ public class RMAppManager implements EventHandler<RMAppManagerEvent>,
     }
 
     // We only replace the queue when it's a new application
+    // 我们只在队列是新应用程序时才替换它
     if (!isRecovery) {
       copyPlacementQueueToSubmissionContext(placementContext,
           submissionContext);
@@ -425,16 +433,19 @@ public class RMAppManager implements EventHandler<RMAppManagerEvent>,
           submissionContext.getApplicationTimeouts());
     }
 
+    // todo: 校验资源请求
     ApplicationId applicationId = submissionContext.getApplicationId();
     List<ResourceRequest> amReqs = validateAndCreateResourceRequest(
         submissionContext, isRecovery);
 
     // Verify and get the update application priority and set back to
     // submissionContext
+    // 验证并获取更新应用程序的优先级，并设置回submissionContext
     UserGroupInformation userUgi = UserGroupInformation.createRemoteUser(user);
 
     // Application priority needed to be validated only while submitting. During
     // recovery, validated priority could be recovered from submission context.
+    // 申请优先级只需要在提交时进行验证。在恢复期间，可以从提交上下文中恢复已验证的优先级。
     if (!isRecovery) {
       Priority appPriority = scheduler.checkAndGetApplicationPriority(
           submissionContext.getPriority(), userUgi,
@@ -501,6 +512,7 @@ public class RMAppManager implements EventHandler<RMAppManagerEvent>,
     }
 
     // Create RMApp
+    // todo: 创建 RMAppImpl
     RMAppImpl application =
         new RMAppImpl(applicationId, rmContext, this.conf,
             submissionContext.getApplicationName(), user,

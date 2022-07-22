@@ -322,11 +322,13 @@ public class YARNRunner implements ClientProtocol {
     
     addHistoryToken(ts);
 
+    // 封装本地资源信息
     ApplicationSubmissionContext appContext =
       createApplicationSubmissionContext(conf, jobSubmitDir, ts);
 
     // Submit to ResourceManager
     try {
+      // 提交任务 获取applicationId
       ApplicationId applicationId =
           resMgrDelegate.submitApplication(appContext);
 
@@ -446,6 +448,7 @@ public class YARNRunner implements ClientProtocol {
     vargs.add(MRApps.crossPlatformifyMREnv(jobConf, Environment.JAVA_HOME)
         + "/bin/java");
 
+    // 默认临时目录
     Path amTmpDir =
         new Path(MRApps.crossPlatformifyMREnv(conf, Environment.PWD),
             YarnConfiguration.DEFAULT_CONTAINER_TEMP_DIR);
@@ -567,19 +570,21 @@ public class YARNRunner implements ClientProtocol {
   public ApplicationSubmissionContext createApplicationSubmissionContext(
       Configuration jobConf, String jobSubmitDir, Credentials ts)
       throws IOException {
+    // 获取 applicationId
     ApplicationId applicationId = resMgrDelegate.getApplicationId();
 
-    // Setup LocalResources
+    // Setup LocalResources 封装本地资源
     Map<String, LocalResource> localResources =
         setupLocalResources(jobConf, jobSubmitDir);
 
-    // Setup security tokens
+    // Setup security tokens 设置安全相关的token
     DataOutputBuffer dob = new DataOutputBuffer();
     ts.writeTokenStorageToStream(dob);
     ByteBuffer securityTokens =
         ByteBuffer.wrap(dob.getData(), 0, dob.getLength());
 
     // Setup ContainerLaunchContext for AM container
+    // 设置运行applicationMaster运行的命令
     List<String> vargs = setupAMCommand(jobConf);
     ContainerLaunchContext amContainer = setupContainerLaunchContextForAM(
         jobConf, localResources, securityTokens, vargs);
@@ -620,21 +625,25 @@ public class YARNRunner implements ClientProtocol {
           + " to queue:" + appContext.getQueue() + " with reservationId:"
           + appContext.getReservationID());
     }
+    // todo: 设置任务名称
     appContext.setApplicationName(                             // Job name
         jobConf.get(JobContext.JOB_NAME,
         YarnConfiguration.DEFAULT_APPLICATION_NAME));
     appContext.setCancelTokensWhenComplete(
         conf.getBoolean(MRJobConfig.JOB_CANCEL_DELEGATION_TOKEN, true));
     appContext.setAMContainerSpec(amContainer);         // AM Container
+    // todo: 设置最大尝试次数
     appContext.setMaxAppAttempts(
         conf.getInt(MRJobConfig.MR_AM_MAX_ATTEMPTS,
             MRJobConfig.DEFAULT_MR_AM_MAX_ATTEMPTS));
 
     // Setup the AM ResourceRequests
+    // todo: 设置启动ApplicationMaster 需要的资源请求信息
     List<ResourceRequest> amResourceRequests = generateResourceRequests();
     appContext.setAMContainerResourceRequests(amResourceRequests);
 
     // set labels for the AM container requests if present
+    // todo:给ApplicationMaster 设置标签
     String amNodelabelExpression = conf.get(MRJobConfig.AM_NODE_LABEL_EXP);
     if (null != amNodelabelExpression
         && amNodelabelExpression.trim().length() != 0) {
@@ -643,9 +652,11 @@ public class YARNRunner implements ClientProtocol {
       }
     }
     // set labels for the Job containers
+    // todo: 给job containers 设置标签
     appContext.setNodeLabelExpression(jobConf
         .get(JobContext.JOB_NODE_LABEL_EXP));
 
+    // todo: 设置任务类型
     appContext.setApplicationType(MRJobConfig.MR_APPLICATION_TYPE);
     if (tagsFromConf != null && !tagsFromConf.isEmpty()) {
       appContext.setApplicationTags(new HashSet<>(tagsFromConf));

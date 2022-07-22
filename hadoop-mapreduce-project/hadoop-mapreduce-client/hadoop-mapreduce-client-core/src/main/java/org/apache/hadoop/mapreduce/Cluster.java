@@ -102,13 +102,14 @@ public class Cluster {
     this(null, conf);
   }
 
-  public Cluster(InetSocketAddress jobTrackAddr, Configuration conf) 
+  public Cluster(InetSocketAddress jobTrackAddr, Configuration conf)
       throws IOException {
     this.conf = conf;
     this.ugi = UserGroupInformation.getCurrentUser();
+    // 做一些初始化
     initialize(jobTrackAddr, conf);
   }
-  
+
   private void initialize(InetSocketAddress jobTrackAddr, Configuration conf)
       throws IOException {
 

@@ -136,6 +136,7 @@
     <value>60</value>
   </property>
 
+<!--  ApplicationMaster 监控过期-->
   <property>
     <description>The expiry interval for application master reporting.</description>
     <name>yarn.am.liveness-monitor.expiry-interval-ms</name>
@@ -357,6 +358,7 @@
     <value>30000</value>
   </property>
 
+<!--  ApplicationMaster 最大尝试次数-->
   <property>
     <description>The default maximum number of application attempts, if unset by
     the user. Each application master can specify its individual maximum number of application

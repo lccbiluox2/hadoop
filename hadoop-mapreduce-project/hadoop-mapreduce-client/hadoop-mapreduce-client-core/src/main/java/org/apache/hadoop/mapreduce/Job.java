@@ -1532,11 +1532,13 @@ public class Job extends JobContextImpl implements JobContext, AutoCloseable {
   synchronized void connect()
           throws IOException, InterruptedException, ClassNotFoundException {
     if (cluster == null) {
-      cluster = 
+      // 如果为空 那么创建一个
+      cluster =
         ugi.doAs(new PrivilegedExceptionAction<Cluster>() {
                    public Cluster run()
                           throws IOException, InterruptedException, 
                                  ClassNotFoundException {
+                     // 创建集群
                      return new Cluster(getConfiguration());
                    }
                  });
@@ -1560,14 +1562,19 @@ public class Job extends JobContextImpl implements JobContext, AutoCloseable {
    */
   public void submit() 
          throws IOException, InterruptedException, ClassNotFoundException {
+    // 再次检测作业状态是否为 define
     ensureState(JobState.DEFINE);
+    // 设置使用心得api
     setUseNewAPI();
+    // 跟程序运行环境建立连接
     connect();
-    final JobSubmitter submitter = 
+    // 创建Job连接器和ClientProto有关,s是local还是yarn
+    final JobSubmitter submitter =
         getJobSubmitter(cluster.getFileSystem(), cluster.getClient());
     status = ugi.doAs(new PrivilegedExceptionAction<JobStatus>() {
       public JobStatus run() throws IOException, InterruptedException, 
       ClassNotFoundException {
+        // 内置的提交流程
         return submitter.submitJobInternal(Job.this, cluster);
       }
     });
@@ -1585,15 +1592,21 @@ public class Job extends JobContextImpl implements JobContext, AutoCloseable {
   public boolean waitForCompletion(boolean verbose
                                    ) throws IOException, InterruptedException,
                                             ClassNotFoundException {
+    // 当job为define状态的时候 提交任务
     if (state == JobState.DEFINE) {
+      // 提交job
       submit();
     }
+    // 用户指定 verberos
     if (verbose) {
+      // 随着任务运行，实时监控作业状态
       monitorAndPrintJob();
     } else {
       // get the completion poll interval from the client.
-      int completionPollIntervalMillis = 
+      // 从客户端轮训,默认5000毫秒，拉取完成信息
+      int completionPollIntervalMillis =
         Job.getCompletionPollInterval(cluster.getConf());
+      // 检测作业是否完成
       while (!isComplete()) {
         try {
           Thread.sleep(completionPollIntervalMillis);

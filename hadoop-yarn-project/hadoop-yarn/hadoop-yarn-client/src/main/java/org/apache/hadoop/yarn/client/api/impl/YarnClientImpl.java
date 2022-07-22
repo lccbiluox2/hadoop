@@ -299,13 +299,17 @@ public class YarnClientImpl extends YarnClient {
   public ApplicationId
       submitApplication(ApplicationSubmissionContext appContext)
           throws YarnException, IOException {
+    // 获取applicationId
     ApplicationId applicationId = appContext.getApplicationId();
     if (applicationId == null) {
       throw new ApplicationIdNotProvidedException(
           "ApplicationId is not provided in ApplicationSubmissionContext");
     }
+
+    // todo: 设置提交任务的请求事件 我们知道yarn就是事件驱动的
     SubmitApplicationRequest request =
         Records.newRecord(SubmitApplicationRequest.class);
+    // todo:在事件中加入我们提交任务的参数
     request.setApplicationSubmissionContext(appContext);
 
     // Automatically add the timeline DT into the CLC
@@ -315,6 +319,7 @@ public class YarnClientImpl extends YarnClient {
     }
 
     //TODO: YARN-1763:Handle RM failovers during the submitApplication call.
+    // //aw:继续提交具体实现类是: ApplicationClientProtocolPBClientImpl
     rmClient.submitApplication(request);
 
     int pollCount = 0;

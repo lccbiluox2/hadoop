@@ -587,6 +587,7 @@ public class ClientRMService extends AbstractService implements
   @Override
   public SubmitApplicationResponse submitApplication(
       SubmitApplicationRequest request) throws YarnException, IOException {
+    // todo: 获取提交任务的参数
     ApplicationSubmissionContext submissionContext = request
         .getApplicationSubmissionContext();
     ApplicationId applicationId = submissionContext.getApplicationId();
@@ -597,6 +598,7 @@ public class ClientRMService extends AbstractService implements
     // checked here, those that are dependent on RM configuration are validated
     // in RMAppManager.
 
+    // todo: 校验用户信息
     String user = null;
     try {
       // Safety
@@ -637,6 +639,7 @@ public class ClientRMService extends AbstractService implements
       }
     }
 
+    // todo: 检测是否已经提交  重复性校验
     // Check whether app has already been put into rmContext,
     // If it is, simply return the response
     if (rmContext.getRMApps().get(applicationId) != null) {
@@ -659,13 +662,17 @@ public class ClientRMService extends AbstractService implements
                 + tokenConf.capacity() + " bytes.");
       }
     }
+    // todo: 如果用户指定了队列 那么设置队列
     if (submissionContext.getQueue() == null) {
       submissionContext.setQueue(YarnConfiguration.DEFAULT_QUEUE_NAME);
     }
+    // todo: 如果用户设置了 应用名称，那么设置名称
     if (submissionContext.getApplicationName() == null) {
       submissionContext.setApplicationName(
           YarnConfiguration.DEFAULT_APPLICATION_NAME);
     }
+
+    // todo: 设置应用程序的类型 比如 spark MapReduce Flink
     if (submissionContext.getApplicationType() == null) {
       submissionContext
         .setApplicationType(YarnConfiguration.DEFAULT_APPLICATION_TYPE);
@@ -690,6 +697,7 @@ public class ClientRMService extends AbstractService implements
 
     try {
       // call RMAppManager to submit application directly
+      // todo: 直接调用 RMAppManager 提交任务
       rmAppManager.submitApplication(submissionContext,
           System.currentTimeMillis(), user);
 
