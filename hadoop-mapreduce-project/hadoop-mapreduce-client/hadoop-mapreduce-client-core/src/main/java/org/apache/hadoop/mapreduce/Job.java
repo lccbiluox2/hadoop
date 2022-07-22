@@ -1574,7 +1574,7 @@ public class Job extends JobContextImpl implements JobContext, AutoCloseable {
     status = ugi.doAs(new PrivilegedExceptionAction<JobStatus>() {
       public JobStatus run() throws IOException, InterruptedException, 
       ClassNotFoundException {
-        // 内置的提交流程
+        // 内置的提交流程 向集群提交了job信息，这里是提交job任务的核心代码
         return submitter.submitJobInternal(Job.this, cluster);
       }
     });
@@ -1599,7 +1599,10 @@ public class Job extends JobContextImpl implements JobContext, AutoCloseable {
     }
     // 用户指定 verberos
     if (verbose) {
-      // 随着任务运行，实时监控作业状态
+      /** 随着任务运行，实时监控作业状态
+       * 监控并打印job信息，走完这一步之后会删除所有刚刚提交到集群的信息，jar包
+       * 切片信息，job相关 参数的xml信息
+       */
       monitorAndPrintJob();
     } else {
       // get the completion poll interval from the client.

@@ -161,6 +161,10 @@ class JobSubmitter {
     // todo： 获取jobId
     JobID jobId = submitClient.getNewJobID();
     job.setJobID(jobId);
+    /**
+     * jab客户端要向Local客户端或者Yarn客户端提交的路径，即将提交的有
+     * 切片信息，jar包， job任务配i置信息的conf.xm,如果是Iocal就不提交jar包
+     */
     Path submitJobDir = new Path(jobStagingArea, jobId.toString());
     JobStatus status = null;
 
@@ -201,6 +205,7 @@ class JobSubmitter {
       }
 
       //aw:拷贝作业相关的资源文件到submitJobDir作业准备区，比如: -libjars, -files, -archives
+      // 如果是Job提交给Yarn 这里需要提交jar包给集群 Local 不需要
       copyAndConfigureFiles(job, submitJobDir);
 
       // 创建job.xml用于保存作业的信息
@@ -254,6 +259,7 @@ class JobSubmitter {
       }
 
       // Write job file to submit dir
+      // todo: 走到这行，向loacl和yarn提交了job的所有信息 记录在job.xml中
       writeConf(conf, submitJobFile);
       
       //
@@ -320,6 +326,7 @@ class JobSubmitter {
     InputFormat<?, ?> input =
       ReflectionUtils.newInstance(job.getInputFormatClass(), conf);
 
+    // todo: 具体进入到 FileInputFormat 实现类，分析其切片过程
     List<InputSplit> splits = input.getSplits(job);
     T[] array = (T[]) splits.toArray(new InputSplit[splits.size()]);
 
@@ -337,6 +344,7 @@ class JobSubmitter {
     JobConf jConf = (JobConf)job.getConfiguration();
     int maps;
     if (jConf.getUseNewMapper()) {
+      // 进入具体的切片过程
       maps = writeNewSplits(job, jobSubmitDir);
     } else {
       maps = writeOldSplits(jConf, jobSubmitDir);

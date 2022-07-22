@@ -396,15 +396,22 @@ public abstract class FileInputFormat<K, V> extends InputFormat<K, V> {
    */
   public List<InputSplit> getSplits(JobContext job) throws IOException {
     StopWatch sw = new StopWatch().start();
+
+    /**
+     * 这里相当于个上下限值，-些属性可以配置，最后在那个可以控制最终切片的大小
+     */
     long minSize = Math.max(getFormatMinSplitSize(), getMinSplitSize(job));
     long maxSize = getMaxSplitSize(job);
 
     // generate splits
     List<InputSplit> splits = new ArrayList<InputSplit>();
+    // 注意是处理hdfs下所有的文件，并且是按一个一个文件切，不是按所有的文件大小切的，很关键
     List<FileStatus> files = listStatus(job);
 
     boolean ignoreDirs = !getInputDirRecursive(job)
       && job.getConfiguration().getBoolean(INPUT_DIR_NONRECURSIVE_IGNORE_SUBDIRS, false);
+
+    // 注意是处理hdfs下所有的文件，并且是按一个一个文件切，不是按所有的文件大小切的，很关键
     for (FileStatus file: files) {
       if (ignoreDirs && file.isDirectory()) {
         continue;
@@ -419,10 +426,36 @@ public abstract class FileInputFormat<K, V> extends InputFormat<K, V> {
           FileSystem fs = path.getFileSystem(job.getConfiguration());
           blkLocations = fs.getFileBlockLocations(file, 0, length);
         }
+        /**
+         * 文件是否支持切割，压缩包就不可以切分，最后只能一个切片，只能启动一个mapTask
+         */
         if (isSplitable(job, path)) {
+          // 获取块大小，这个是实实在在存在磁盘上的大小不可以调控
+          // 这里获取的是block大小，默认是128M
           long blockSize = file.getBlockSize();
+          /**
+           * a)获取文件大小fs.size0f(ss. txt)
+           * b)计算切片大小
+           *
+           * mapreduce.input.fileinputformat.spLit.minsize=1 默认值为1
+           * mapreduce.input.fileinputformat.splLit.maxsize= Long.MAXValue 默认值Long. MAXValue
+           *
+           * 因此，默认情况下，切片大小=blocksize。
+           * maxsize (切片最大值) :参数如果调得比bLockSize小， 则会让切片变小，而且就等于配置的这个参数的值。
+           * minsize (切片最小值) :参数调的比bLockSize大， 则可以让切片变得比bLockSize还大。
+           *
+           * 计算切片的大小， 默认是128M, black大小不可以改变， 但是 你可以通过改变maxSize
+           * 和minSize来控制切片大小，具体可以点进去看看切片过程，也不难理解
+           */
           long splitSize = computeSplitSize(blockSize, minSize, maxSize);
 
+          /**
+           * d)开始切，形成第1个切片: ss.txt-0:128M 第2个切片ss. txt-128:256M 第3个切片ss. txt-256M: 300M
+           *  (每次切片时，都要判断切完剩下的部分是否大于块的1.1倍，不大于1.1倍就划分-块切片)
+           *
+           * 切片过程中，有个切片阈值，128.1 M的文件不会切成128M和0.1 M两个
+           * 会通过128.1/128是否大于1.1来决定切不切
+           */
           long bytesRemaining = length;
           while (((double) bytesRemaining)/splitSize > SPLIT_SLOP) {
             int blkIndex = getBlockIndex(blkLocations, length-bytesRemaining);

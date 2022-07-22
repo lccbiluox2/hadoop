@@ -112,7 +112,9 @@ public class Cluster {
 
   private void initialize(InetSocketAddress jobTrackAddr, Configuration conf)
       throws IOException {
-
+      /**
+       * 初始了ProviderList，包括YarnClientProtocolProvider和LocalClientProtocolProvider
+       */
     initProviderList();
     final IOException initEx = new IOException(
         "Cannot initialize Cluster. Please check your configuration for "
@@ -128,8 +130,10 @@ public class Cluster {
       ClientProtocol clientProtocol = null;
       try {
         if (jobTrackAddr == null) {
+            // 如果是本地运行 那么就是 LocalClientProtocolProvider
           clientProtocol = provider.create(conf);
         } else {
+            // 如果是远程运行到yarn 那么就是 YarnClientProtocolProvider
           clientProtocol = provider.create(jobTrackAddr, conf);
         }
 
