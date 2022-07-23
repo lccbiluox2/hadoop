@@ -298,6 +298,7 @@ public class NodeManager extends CompositeService
 
   private void initAndStartRecoveryStore(Configuration conf)
       throws IOException {
+    // 是否开启恢复模式
     boolean recoveryEnabled = conf.getBoolean(
         YarnConfiguration.NM_RECOVERY_ENABLED,
         YarnConfiguration.DEFAULT_NM_RECOVERY_ENABLED);
@@ -314,7 +315,9 @@ public class NodeManager extends CompositeService
     } else {
       nmStore = new NMNullStateStoreService();
     }
+    // todo: 初始化
     nmStore.init(conf);
+    // todo: 启动
     nmStore.start();
   }
 
@@ -361,12 +364,14 @@ public class NodeManager extends CompositeService
 
   @Override
   protected void serviceInit(Configuration conf) throws Exception {
+    // 设置用户信息
     UserGroupInformation.setConfiguration(conf);
     rmWorkPreservingRestartEnabled = conf.getBoolean(YarnConfiguration
             .RM_WORK_PRESERVING_RECOVERY_ENABLED,
         YarnConfiguration.DEFAULT_RM_WORK_PRESERVING_RECOVERY_ENABLED);
 
     try {
+      // todo: 初始化和启动
       initAndStartRecoveryStore(conf);
     } catch (IOException e) {
       String recoveryDirName = conf.get(YarnConfiguration.NM_RECOVERY_DIR);
@@ -375,6 +380,7 @@ public class NodeManager extends CompositeService
               + recoveryDirName, e);
     }
 
+    // todo: 创建 NMContainerTokenSecretManager
     NMContainerTokenSecretManager containerTokenSecretManager =
         new NMContainerTokenSecretManager(conf, nmStore);
 
@@ -382,24 +388,30 @@ public class NodeManager extends CompositeService
         new NMTokenSecretManagerInNM(nmStore);
 
     recoverTokens(nmTokenSecretManager, containerTokenSecretManager);
-    
+
+    // 九师兄 权限相关
     this.aclsManager = new ApplicationACLsManager(conf);
 
+    // 九师兄 日志相关
     this.dirsHandler = new LocalDirsHandlerService(metrics);
 
     boolean isDistSchedulingEnabled =
         conf.getBoolean(YarnConfiguration.DIST_SCHEDULING_ENABLED,
             YarnConfiguration.DEFAULT_DIST_SCHEDULING_ENABLED);
 
+    // 九师兄 创建上下文对象
     this.context = createNMContext(containerTokenSecretManager,
         nmTokenSecretManager, nmStore, isDistSchedulingEnabled, conf);
 
+    // 九师兄 创建插件相关
     ResourcePluginManager pluginManager = createResourcePluginManager();
     pluginManager.initialize(context);
     ((NMContext)context).setResourcePluginManager(pluginManager);
 
+    // 九师兄 todo： 创建 ContainerExecutor 执行器
     ContainerExecutor exec = createContainerExecutor(conf);
     try {
+      // 九师兄 执行器初始化
       exec.init(context);
     } catch (IOException e) {
       throw new YarnRuntimeException("Failed to initialize container executor", e);
@@ -408,33 +420,40 @@ public class NodeManager extends CompositeService
     addService(del);
 
     // NodeManager level dispatcher
+    // 九师兄 todo: 创建 dispatcher
     this.dispatcher = createNMDispatcher();
 
+    // 九师兄 创建nodeManager是否健康的服务
     this.nodeHealthChecker = new NodeHealthCheckerService(dirsHandler);
     addService(nodeHealthChecker);
 
     ((NMContext)context).setContainerExecutor(exec);
     ((NMContext)context).setDeletionService(del);
 
+    // 九师兄 节点状态更新器 NodeManager 向 ResourceManager 注册的哪个组件
     nodeStatusUpdater =
         createNodeStatusUpdater(context, dispatcher, nodeHealthChecker);
 
+    // 九师兄 节点标签相关
     nodeLabelsProvider = createNodeLabelsProvider(conf);
     if (nodeLabelsProvider != null) {
       addIfService(nodeLabelsProvider);
       nodeStatusUpdater.setNodeLabelsProvider(nodeLabelsProvider);
     }
 
+    // 九师兄 节点属性相关
     nodeAttributesProvider = createNodeAttributesProvider(conf);
     if (nodeAttributesProvider != null) {
       addIfService(nodeAttributesProvider);
       nodeStatusUpdater.setNodeAttributesProvider(nodeAttributesProvider);
     }
 
+    // 九师兄 资源监控器
     nodeResourceMonitor = createNodeResourceMonitor();
     addService(nodeResourceMonitor);
     ((NMContext) context).setNodeResourceMonitor(nodeResourceMonitor);
 
+    // 九师兄 container 管理器
     containerManager =
         createContainerManager(context, exec, del, nodeStatusUpdater,
         this.aclsManager, dirsHandler);
@@ -447,6 +466,7 @@ public class NodeManager extends CompositeService
     ((NMContext)context).setNMLogAggregationStatusTracker(
         this.nmLogAggregationStatusTracker);
 
+    // 九师兄 web相关
     WebServer webServer = createWebServer(context, containerManager
         .getContainersMonitor(), this.aclsManager, dirsHandler);
     addService(webServer);
@@ -460,10 +480,12 @@ public class NodeManager extends CompositeService
             context.getContainerTokenSecretManager(),
             maxAllocationsPerAMHeartbeat));
 
+    // 九师兄 注册NodeManager 处理哪种类型的事件
     dispatcher.register(ContainerManagerEventType.class, containerManager);
     dispatcher.register(NodeManagerEventType.class, this);
     addService(dispatcher);
 
+    // 九师兄 jvm暂停监视器
     pauseMonitor = new JvmPauseMonitor();
     addService(pauseMonitor);
     metrics.getJvmMetrics().setPauseMonitor(pauseMonitor);
@@ -483,14 +505,18 @@ public class NodeManager extends CompositeService
 
     // Do secure login before calling init for added services.
     try {
+      // 九师兄 安全认证相关
       doSecureLogin();
     } catch (IOException e) {
       throw new YarnRuntimeException("Failed NodeManager login", e);
     }
 
+    // 九师兄 注册指标相关
     registerMXBean();
 
+    // todo: 启动ContainerExecutor
     context.getContainerExecutor().start();
+    // 九师兄 初始化服务 把这个service的子server都给初始化
     super.serviceInit(conf);
     // TODO add local dirs to del
   }
@@ -959,7 +985,9 @@ public class NodeManager extends CompositeService
       // System exit should be called only when NodeManager is instantiated from
       // main() funtion
       this.shouldExitOnShutdownEvent = true;
+      // todo: 核心方法 初始化
       this.init(conf);
+      // todo: 核心方法 启动
       this.start();
     } catch (Throwable t) {
       LOG.error("Error starting NodeManager", t);
@@ -1035,10 +1063,13 @@ public class NodeManager extends CompositeService
   public static void main(String[] args) throws IOException {
     Thread.setDefaultUncaughtExceptionHandler(new YarnUncaughtExceptionHandler());
     StringUtils.startupShutdownMessage(NodeManager.class, args, LOG);
+
+    // todo: 创建nodeManager
     @SuppressWarnings("resource")
     NodeManager nodeManager = new NodeManager();
     Configuration conf = new YarnConfiguration();
     new GenericOptionsParser(conf, args);
+    // todo: 初始化和启动
     nodeManager.initAndStartNodeManager(conf, false);
   }
 

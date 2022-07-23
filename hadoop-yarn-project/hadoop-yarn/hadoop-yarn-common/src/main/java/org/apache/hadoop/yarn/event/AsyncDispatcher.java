@@ -61,6 +61,7 @@ public class AsyncDispatcher extends AbstractService implements Dispatcher {
   private static final Marker FATAL =
       MarkerFactory.getMarker("FATAL");
 
+  // 九师兄 事件队列
   private final BlockingQueue<Event> eventQueue;
   private volatile int lastEventQueueSizeLogged = 0;
   private volatile int lastEventDetailsQueueSizeLogged = 0;
@@ -88,6 +89,12 @@ public class AsyncDispatcher extends AbstractService implements Dispatcher {
   private final EventHandler<Event> handlerInstance = new GenericEventHandler();
 
   private Thread eventHandlingThread;
+  /*
+   * 九师兄 jiushixiong lcc
+   * 未经允许，不得转载。主页：https://blog.csdn.net/qq_21383435
+   *
+   *  Map<事件类型, 能处理这类事件的EventHandler>
+   **/
   protected final Map<Class<? extends Enum>, EventHandler> eventDispatchers;
   private boolean exitOnDispatchException = true;
 
@@ -245,11 +252,14 @@ public class AsyncDispatcher extends AbstractService implements Dispatcher {
     LOG.debug("Dispatching the event {}.{}", event.getClass().getName(),
         event);
 
+    // 九师兄 todo: 找到事件的类型
     Class<? extends Enum> type = event.getType().getDeclaringClass();
 
     try{
+      // 九师兄 todo: 根据事件的类 获取相应的EventHandler
       EventHandler handler = eventDispatchers.get(type);
       if(handler != null) {
+        // 九师兄 todo: 调用响应事件的EventHandler处理事件
         handler.handle(event);
       } else {
         throw new Exception("No handler for registered for " + type);
@@ -278,12 +288,14 @@ public class AsyncDispatcher extends AbstractService implements Dispatcher {
     eventDispatchers.get(eventType);
     LOG.info("Registering " + eventType + " for " + handler.getClass());
     if (registeredHandler == null) {
+      // 九师兄 todo: 放入事件类型和处理器EventHandler的映射关系
       eventDispatchers.put(eventType, handler);
     } else if (!(registeredHandler instanceof MultiListenerHandler)){
       /* for multiple listeners of an event add the multiple listener handler */
       MultiListenerHandler multiHandler = new MultiListenerHandler();
       multiHandler.addHandler(registeredHandler);
       multiHandler.addHandler(handler);
+      // 九师兄 todo: 放入事件类型和处理器EventHandler的映射关系
       eventDispatchers.put(eventType, multiHandler);
     } else {
       /* already a multilistener, just add to it */
@@ -340,6 +352,7 @@ public class AsyncDispatcher extends AbstractService implements Dispatcher {
             + remCapacity);
       }
       try {
+        // 九师兄 todo: 放入事件
         eventQueue.put(event);
       } catch (InterruptedException e) {
         if (!stopped) {

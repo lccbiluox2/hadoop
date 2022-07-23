@@ -159,16 +159,15 @@ public abstract class AbstractService implements Service {
       throw new ServiceStateException("Cannot initialize service "
                                       + getName() + ": null configuration");
     }
-    // 初始化状态信息
     if (isInState(STATE.INITED)) {
       return;
     }
     synchronized (stateChangeLock) {
       if (enterState(STATE.INITED) != STATE.INITED) {
-        // 设置此服务的配置。
         setConfig(conf);
         try {
-          // 调用这个service的serviceInit方法
+          // todo: 调用 serviceInit 初始化
+          // 这里调用的是 v2.app.MRAppMaster.serviceInit
           serviceInit(config);
           if (isInState(STATE.INITED)) {
             //if the service ended up here during init,
@@ -200,6 +199,8 @@ public abstract class AbstractService implements Service {
       if (stateModel.enterState(STATE.STARTED) != STATE.STARTED) {
         try {
           startTime = System.currentTimeMillis();
+          // todo: 启动一些服务 代理方法 所以还是 自己的方法
+          // 这里是 MRAppMaster.ContainerAllocatorRouter.serviceStart
           serviceStart();
           if (isInState(STATE.STARTED)) {
             //if the service started (and isn't now in a later state), notify
