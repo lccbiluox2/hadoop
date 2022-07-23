@@ -38,6 +38,9 @@ import org.apache.hadoop.yarn.server.resourcemanager.scheduler.SchedulerUtils;
 
 /**
  * Node Sorting Manager which runs all sorter threads and policies.
+ *
+ * 节点排序管理器，运行所有排序线程和策略。
+ *
  * @param <N> extends SchedulerNode
  */
 public class MultiNodeSortingManager<N extends SchedulerNode>

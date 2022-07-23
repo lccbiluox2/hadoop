@@ -136,6 +136,11 @@ public abstract class AbstractService implements Service {
    * and should only be needed if for some reason a service implementation
    * needs to override that initial setting -for example replacing
    * it with a new subclass of {@link Configuration}
+   *
+   * 设置此服务的配置。这个方法在{@link #init(Configuration)}期间被调用，并且只在由于
+   * 某些原因服务实现需要重写初始设置时才需要-例如用{@link Configuration}的一个
+   * 新子类替换它
+   *
    * @param conf new configuration.
    */
   protected void setConfig(Configuration conf) {
@@ -155,17 +160,21 @@ public abstract class AbstractService implements Service {
       throw new ServiceStateException("Cannot initialize service "
                                       + getName() + ": null configuration");
     }
+    // 初始化状态信息
     if (isInState(STATE.INITED)) {
       return;
     }
     synchronized (stateChangeLock) {
       if (enterState(STATE.INITED) != STATE.INITED) {
+        // 设置此服务的配置。
         setConfig(conf);
         try {
+          // 调用这个service的serviceInit方法
           serviceInit(config);
           if (isInState(STATE.INITED)) {
             //if the service ended up here during init,
             //notify the listeners
+            // 通知相关的监听器
             notifyListeners();
           }
         } catch (Exception e) {
