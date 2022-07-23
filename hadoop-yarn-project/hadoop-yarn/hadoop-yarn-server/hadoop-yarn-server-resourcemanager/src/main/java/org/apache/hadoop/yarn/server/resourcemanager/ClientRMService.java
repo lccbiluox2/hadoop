@@ -206,6 +206,11 @@ import org.apache.hadoop.yarn.util.timeline.TimelineUtils;
 /**
  * The client interface to the Resource Manager. This module handles all the rpc
  * interfaces to the resource manager from the client.
+ *
+ * 客户端与资源管理器的接口。这个模块处理从客户机到资源管理器的所有rpc接口。
+ *
+ * todo:【Yarn】yarn源码阅读之ClientRMService
+ *    https://blog.csdn.net/qq_21383435/article/details/125922407
  */
 public class ClientRMService extends AbstractService implements
     ApplicationClientProtocol {
@@ -270,26 +275,37 @@ public class ClientRMService extends AbstractService implements
 
   @Override
   protected void serviceInit(Configuration conf) throws Exception {
+    // todo: 拿到绑定的地址 ResourceManager的地址信息
     clientBindAddress = getBindAddress(conf);
+    // 调用父类
     super.serviceInit(conf);
   }
 
   @Override
   protected void serviceStart() throws Exception {
     Configuration conf = getConfig();
+    // todo: 获取 YarnRPC
     YarnRPC rpc = YarnRPC.create(conf);
+    /**
+     * 因为这个ClientRMService是客户端提供服务的，你要服务总要提供相关的接口，提供
+     * 接口总是要启动服务，启动服务后。客户端与服务端交互肯定需要协议ApplicationClientProtocol
+     * [九师兄出品]
+     */
     this.server =   
       rpc.getServer(ApplicationClientProtocol.class, this,
             clientBindAddress,
             conf, this.rmDTSecretManager,
+            // 线程总数
             conf.getInt(YarnConfiguration.RM_CLIENT_THREAD_COUNT, 
                 YarnConfiguration.DEFAULT_RM_CLIENT_THREAD_COUNT));
-    
+
+    // 注册异常
     this.server.addTerseExceptions(ApplicationNotFoundException.class,
         ApplicationAttemptNotFoundException.class,
         ContainerNotFoundException.class,
         YARNFeatureNotEnabledException.class);
 
+    // 安全认证相关
     // Enable service authorization?
     if (conf.getBoolean(
         CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHORIZATION, 
