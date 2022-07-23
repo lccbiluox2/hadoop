@@ -104,17 +104,21 @@ public class CompositeService extends AbstractService {
   }
 
   protected void serviceInit(Configuration conf) throws Exception {
+    // 获取所有的seriver
     List<Service> services = getServices();
     if (LOG.isDebugEnabled()) {
       LOG.debug(getName() + ": initing services, size=" + services.size());
     }
+    // 循环调用每个service的init方法 调用的是抽象类 AbstractService的init方法
     for (Service service : services) {
       service.init(conf);
     }
+    // 调研父类的serviceInit
     super.serviceInit(conf);
   }
 
   protected void serviceStart() throws Exception {
+    // 获取所有的子服务
     List<Service> services = getServices();
     if (LOG.isDebugEnabled()) {
       LOG.debug(getName() + ": starting services, size=" + services.size());
@@ -122,6 +126,7 @@ public class CompositeService extends AbstractService {
     for (Service service : services) {
       // start the service. If this fails that service
       // will be stopped and an exception raised
+      // 循环调用start方法
       service.start();
     }
     super.serviceStart();
