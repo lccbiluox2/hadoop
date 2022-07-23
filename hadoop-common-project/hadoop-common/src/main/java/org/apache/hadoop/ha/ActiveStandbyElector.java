@@ -64,6 +64,15 @@ import org.slf4j.LoggerFactory;
  * requirements. If it cannot do so, then it is recommended to quit the
  * election. The application implements the {@link ActiveStandbyElectorCallback}
  * to interact with the elector
+ *
+ *
+ 这个类实现了一个简单的库，用于在Apache Zookeeper上执行leader选举。使用Zookeeper作为一个协调服务，可以通过在Zookeeper上原子地创建一个临时锁文件(znode)来执行leader选举。成功创建znode的服务实例变为 `活动和其他成为备用`。
+
+
+ 这种选举机制只对少量的选举候选人有效(10的数量级)，因为大量候选人争用单个znode会导致Zookeeper超载。
+
+ 选择器不保证服务实例之间的保护(共享资源的保护)。在通知实例成为领导者之后，该实例必须确保满足服务一致性要求。如果不能这样做，那么建议退出选举。应用程序实现了{@link ActiveStandbyElectorCallback}来与选举人交互
+
  */
 @InterfaceAudience.Private
 @InterfaceStability.Evolving
@@ -262,13 +271,20 @@ public class ActiveStandbyElector implements StatCallback, StringCallback {
     zkAcl = acl;
     zkAuthInfo = authInfo;
     appClient = app;
+    // HDFS: parentZnodeName = /hadoop-ha/nameservice
+    // YARN: parentZnodeName = /yarn-leader-election/nameservice
     znodeWorkingDir = parentZnodeName;
+    // hdfs = /hadoop-ha/nameservice/ActiveStandbyElectorLock
+    // yarn = /hadoop-ha/clusterID/ActiveStandbyElectorLock
     zkLockFilePath = znodeWorkingDir + "/" + LOCK_FILENAME;
+    // HDFS: /hadoop-ha/ nameservice/ActiveBreadCrumb
+    // YARN: /hadoop -ha/clusterID/ActiveBreadCrumb
     zkBreadCrumbPath = znodeWorkingDir + "/" + BREADCRUMB_FILENAME;
     this.maxRetryNum = maxRetryNum;
 
     // establish the ZK Connection for future API calls
     if (failFast) {
+      // 创建连接
       createConnection();
     } else {
       reEstablishSession();
@@ -307,6 +323,7 @@ public class ActiveStandbyElector implements StatCallback, StringCallback {
     if (LOG.isDebugEnabled()) {
       LOG.debug("Attempting active election for " + this);
     }
+    // todo: 重要方法
     joinElectionInternal();
   }
   
@@ -469,28 +486,39 @@ public class ActiveStandbyElector implements StatCallback, StringCallback {
           + " connectionState: " + zkConnectionState +
           "  for " + this);
     }
-
+    // 九师兄 拿到响应代码
     Code code = Code.get(rc);
+    // 九师兄 如果创建节点成功了
     if (isSuccess(code)) {
       // we successfully created the znode. we are the leader. start monitoring
+      // 九师兄 尝试成为active
       if (becomeActive()) {
+        // 九师兄 注册锁节点的监听
         monitorActiveStatus();
       } else {
+        // 九师兄 如果切换成active没有成功，那么尝试竞争再次成为active
         reJoinElectionAfterFailureToBecomeActive();
       }
       return;
     }
 
+    // 九师兄 如果节点创建失败，而且节点已经存在，说明有其他节点创建成功了，然后你只能
+    // 成为standby状态了
     if (isNodeExists(code)) {
       if (createRetryCount == 0) {
         // znode exists and we did not retry the operation. so a different
         // instance has created it. become standby and monitor lock.
+        // Znode存在，我们没有重试操作。一个不同的实例创建了它。成为备用和监控锁定。
         becomeStandby();
       }
       // if we had retried then the znode could have been created by our first
       // attempt to the server (that we lost) and this node exists response is
       // for the second attempt. verify this case via ephemeral node owner. this
       // will happen on the callback for monitoring the lock.
+      //
+      // 如果我们重试了，那么znode可能是由我们第一次尝试服务器(我们丢失了)创建的，
+      // 这个节点存在是对第二次尝试的响应。通过临时节点所有者验证这种情况。
+      // 这将在监控锁的回调中发生。
       monitorActiveStatus();
       return;
     }
@@ -499,10 +527,14 @@ public class ActiveStandbyElector implements StatCallback, StringCallback {
         + code.toString() + " for path " + path;
     LOG.debug(errorMessage);
 
+    // 如果到这里说明 创建节点异常了
+
+    // 如果可以尝试机会，那么就重试
     if (shouldRetry(code)) {
       if (createRetryCount < maxRetryNum) {
         LOG.debug("Retrying createNode createRetryCount: " + createRetryCount);
-        ++createRetryCount;
+        ++createRetryCount;// 累加重试此时
+        // todo: 异步的创建节点
         createLockNodeAsync();
         return;
       }
@@ -514,6 +546,7 @@ public class ActiveStandbyElector implements StatCallback, StringCallback {
       return;
     }
 
+    // todo: 如果三次尝试也失败了，那么调用这个处理致命异常
     fatalError(errorMessage);
   }
 
@@ -695,12 +728,19 @@ public class ActiveStandbyElector implements StatCallback, StringCallback {
     // watcher after constructing ZooKeeper, we may miss that event. Instead,
     // we construct the watcher first, and have it block any events it receives
     // before we can set its ZooKeeper reference.
+    //
+    // 不幸的是，ZooKeeper的构造函数连接到ZooKeeper，可能会立即触发Connected事件。
+    // 因此，如果我们在构造ZooKeeper之后注册观察者，我们可能会错过那个事件。相反，
+    // 我们首先构造观察者，在我们设置它的ZooKeeper引用之前，让它阻塞它接收到的任何事件。
     watcher = new WatcherWithClientRef();
+    // todo: 创建连接
     ZooKeeper zk = createZooKeeper();
     watcher.setZooKeeperRef(zk);
 
     // Wait for the asynchronous success/failure. This may throw an exception
     // if we don't connect within the session timeout.
+    //
+    // 等待异步成功/失败。如果我们没有在会话超时内连接，这可能会抛出异常。
     watcher.waitForZKConnectionEvent(zkSessionTimeout);
     
     for (ZKAuthInfo auth : zkAuthInfo) {
@@ -747,6 +787,8 @@ public class ActiveStandbyElector implements StatCallback, StringCallback {
 
     createRetryCount = 0;
     wantToBeInElection = true;
+    // todo: 通过异步的方式创建一个锁节点
+    //   创建锁节点= /yarn-leader- eLection/yarn330ha/ActiveStandbyELectorLock
     createLockNodeAsync();
   }
 
@@ -855,6 +897,7 @@ public class ActiveStandbyElector implements StatCallback, StringCallback {
       zkClient = null;
       watcher = null;
     }
+    // todo: 创建连接
     zkClient = connectToZooKeeper();
     if (LOG.isDebugEnabled()) {
       LOG.debug("Created new connection for " + this);
@@ -893,12 +936,29 @@ public class ActiveStandbyElector implements StatCallback, StringCallback {
       return true;
     }
     try {
+      /**
+       * 九师兄 jiushixiong lcc
+       *
+       * 注释:
+       * 首先确保原来的active 死掉
+       * 总共有三种方式: FenceMethod 的三个子类
+       *
+       * 1、SshFencedByTcpPort: 通过fuser 命令来杀死namenode 进程
+       * 2、ShellCommandFencer:通过配置 一个脚本来运行杀死namenode power off shultdown
+       * 3、PowerSheLlFencer: windows 的方式
+       **/
       Stat oldBreadcrumbStat = fenceOldActive();
+      /**
+       * 九师兄 jiushixiong lcc
+       * 往zk节点上写 BreadCrumbNode
+       **/
       writeBreadCrumbNode(oldBreadcrumbStat);
 
       LOG.debug("Becoming active for {}", this);
 
+      // 九师兄 发送Rpc请求 让AMNode成为active状态
       appClient.becomeActive();
+      // 九师兄 更新状态为active
       state = State.ACTIVE;
       return true;
     } catch (Exception e) {
@@ -1016,10 +1076,22 @@ public class ActiveStandbyElector implements StatCallback, StringCallback {
   }
 
   private void createLockNodeAsync() {
+    /**
+     * ★ 注释:
+     * 创建锁节点
+     * 1、节点的类型，也就是锁节点，是临时节点，好处: zkfc -死掉，则锁节点就zk自动删掉!
+     * 2、注意倒数第二个参数;我此时是去创建一个znode 节点，只要请求成功，则调用this. processResult()
+     * .   1、创建节点成功
+     * .   2、创建节点失败=节点已经存在了 你去晚了
+     */
     zkClient.create(zkLockFilePath, appData, zkAcl, CreateMode.EPHEMERAL,
         this, zkClient);
+    //当我尝试创建锁节点成功了，则回到用this. processReuslt()尝试切换状态为active
   }
 
+  /*
+   * 九师兄 jiushixiong lcc
+   **/
   private void monitorLockNodeAsync() {
     if (monitorLockNodePending && monitorLockNodeClient == zkClient) {
       LOG.info("Ignore duplicate monitor lock-node request.");

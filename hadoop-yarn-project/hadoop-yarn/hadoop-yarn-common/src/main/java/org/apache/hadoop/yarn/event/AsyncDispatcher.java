@@ -47,6 +47,9 @@ import org.apache.hadoop.thirdparty.com.google.common.annotations.VisibleForTest
  * Dispatches {@link Event}s in a separate thread. Currently only single thread
  * does that. Potentially there could be multiple channels for each event type
  * class and a thread pool can be used to dispatch the events.
+ *
+ * 在一个单独的线程中分派{@link事件}。目前只有一个线程可以这样做。
+ * 每个事件类型类可能有多个通道，可以使用线程池来分派事件。
  */
 @SuppressWarnings("rawtypes")
 @Public
@@ -99,6 +102,7 @@ public class AsyncDispatcher extends AbstractService implements Dispatcher {
   private String dispatcherThreadName = "AsyncDispatcher event handler";
 
   public AsyncDispatcher() {
+    // todo: 初始化了一个队列
     this(new LinkedBlockingQueue<Event>());
   }
 
@@ -123,11 +127,15 @@ public class AsyncDispatcher extends AbstractService implements Dispatcher {
     return new Runnable() {
       @Override
       public void run() {
+        // 如果没有停止，而且没有被中断，那么就死循环
         while (!stopped && !Thread.currentThread().isInterrupted()) {
           drained = eventQueue.isEmpty();
           // blockNewEvents is only set when dispatcher is draining to stop,
           // adding this check is to avoid the overhead of acquiring the lock
           // and calling notify every time in the normal run of the loop.
+          //
+          // blockNewEvents只在调度程序耗尽到停止时设置，添加这个检查是为了避免
+          // 在每次循环正常运行时获取锁和调用notify的开销。
           if (blockNewEvents) {
             synchronized (waitForDrained) {
               if (drained) {
@@ -137,6 +145,7 @@ public class AsyncDispatcher extends AbstractService implements Dispatcher {
           }
           Event event;
           try {
+            // 从事件队列中拿出来一个事件
             event = eventQueue.take();
           } catch(InterruptedException ie) {
             if (!stopped) {
@@ -148,11 +157,13 @@ public class AsyncDispatcher extends AbstractService implements Dispatcher {
             if (eventTypeMetricsMap.
                 get(event.getType().getDeclaringClass()) != null) {
               long startTime = clock.getTime();
+              // todo: 分发处理时间
               dispatch(event);
               eventTypeMetricsMap.get(event.getType().getDeclaringClass())
                   .increment(event.getType(),
                       clock.getTime() - startTime);
             } else {
+              // todo: 分发处理时间
               dispatch(event);
             }
             if (printTrigger) {
@@ -185,6 +196,7 @@ public class AsyncDispatcher extends AbstractService implements Dispatcher {
   protected void serviceStart() throws Exception {
     //start all the components
     super.serviceStart();
+    // 创建一个线程 并且启动
     eventHandlingThread = new Thread(createThread());
     eventHandlingThread.setName(dispatcherThreadName);
     eventHandlingThread.start();

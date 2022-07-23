@@ -357,7 +357,7 @@ public class ResourceManager extends CompositeService
       // yarn.resourcemanager.ha.automatic-failover.embedded = true
       if (HAUtil.isAutomaticFailoverEnabled(conf)
           && HAUtil.isAutomaticFailoverEmbedded(conf)) {
-        // 创建选举器
+        // 创建选举器 默认是 ActiveStandbyElectorBasedElectorService
         EmbeddedElector elector = createEmbeddedElector();
         addIfService(elector);
         rmContext.setLeaderElectorService(elector);
@@ -416,10 +416,12 @@ public class ResourceManager extends CompositeService
     curatorEnabled =
         conf.getBoolean(YarnConfiguration.CURATOR_LEADER_ELECTOR,
             YarnConfiguration.DEFAULT_CURATOR_LEADER_ELECTOR_ENABLED);
+    // 如果我们开启了curator 那么就是走curator去做选举
     if (curatorEnabled) {
       this.zkManager = createAndStartZKManager(conf);
       elector = new CuratorBasedElectorService(this);
     } else {
+      // 否则我们就走原生的选举
       elector = new ActiveStandbyElectorBasedElectorService(this);
     }
     return elector;
@@ -1052,12 +1054,15 @@ public class ResourceManager extends CompositeService
     public void handle(RMFatalEvent event) {
       LOG.error("Received " + event);
 
+      // 如果你启动了HA
       if (HAUtil.isHAEnabled(getConfig())) {
         // If we're in an HA config, the right answer is always to go into
         // standby.
         LOG.warn("Transitioning the resource manager to standby.");
+        // 九师兄 那么就启动一个线程来帮我们选举
         handleTransitionToStandByInNewThread();
       } else {
+        // 九师兄 如果不是HA的集群 那么根据事件类型进行专门处理
         // If we're stand-alone, we probably want to shut down, but the if and
         // how depends on the event.
         switch(event.getType()) {
@@ -1183,9 +1188,11 @@ public class ResourceManager extends CompositeService
    * asynchronous to avoid deadlock caused by cyclic dependency.
    */
   private void handleTransitionToStandByInNewThread() {
+    // 九师兄 选举线程
     Thread standByTransitionThread =
         new Thread(activeServices.standByTransitionRunnable);
     standByTransitionThread.setName("StandByTransitionThread");
+    // 九师兄 启动选举线程
     standByTransitionThread.start();
   }
 
@@ -1214,9 +1221,12 @@ public class ResourceManager extends CompositeService
         try {
           // Transition to standby and reinit active services
           LOG.info("Transitioning RM to Standby mode");
+          // 九师兄 因为这个组件是可复用的组件，所以先把状态切换成standBy
           transitionToStandby(true);
+          // 九师兄 然后拿到选举服务，然后进行重新选举
           EmbeddedElector elector = rmContext.getLeaderElectorService();
           if (elector != null) {
+            // 九师兄 进行重新选举
             elector.rejoinElection();
           }
         } catch (Exception e) {

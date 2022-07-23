@@ -86,27 +86,33 @@ public class ActiveStandbyElectorBasedElectorService extends AbstractService
           " is not set");
     }
 
+    // todo: 构建 ResourceManager 选举 zk 节点
     String rmId = HAUtil.getRMHAId(conf);
     String clusterId = YarnConfiguration.getClusterId(conf);
     localActiveNodeInfo = createActiveNodeInfo(clusterId, rmId);
 
     String zkBasePath = conf.get(YarnConfiguration.AUTO_FAILOVER_ZK_BASE_PATH,
         YarnConfiguration.DEFAULT_AUTO_FAILOVER_ZK_BASE_PATH);
+    // todo:/yarn-leader-election/clusterId 选举的路径
     String electionZNode = zkBasePath + "/" + clusterId;
 
+    // 超时时间
     zkSessionTimeout = conf.getLong(YarnConfiguration.RM_ZK_TIMEOUT_MS,
         YarnConfiguration.DEFAULT_RM_ZK_TIMEOUT_MS);
 
     List<ACL> zkAcls = ZKCuratorManager.getZKAcls(conf);
     List<ZKUtil.ZKAuthInfo> zkAuths = ZKCuratorManager.getZKAuths(conf);
 
+    // 最大尝试次数
     int maxRetryNum =
         conf.getInt(YarnConfiguration.RM_HA_FC_ELECTOR_ZK_RETRIES_KEY, conf
           .getInt(CommonConfigurationKeys.HA_FC_ELECTOR_ZK_OP_RETRIES_KEY,
             CommonConfigurationKeys.HA_FC_ELECTOR_ZK_OP_RETRIES_DEFAULT));
+    // todo: yarn 和 hdfs 都是使用这个组件来做真正的选举的
     elector = new ActiveStandbyElector(zkQuorum, (int) zkSessionTimeout,
         electionZNode, zkAcls, zkAuths, this, maxRetryNum, false);
 
+    // 保证这个节点存在 /yarn-leader-election
     elector.ensureParentZNode();
     if (!isParentZnodeSafe(clusterId)) {
       notifyFatalError(String.format("invalid data in znode, %s, " +
@@ -114,11 +120,13 @@ public class ActiveStandbyElectorBasedElectorService extends AbstractService
           electionZNode));
     }
 
+    // 初始化服务
     super.serviceInit(conf);
   }
 
   @Override
   protected void serviceStart() throws Exception {
+    // todo: 执行选举服务
     elector.joinElection(localActiveNodeInfo);
     super.serviceStart();
   }
@@ -141,6 +149,7 @@ public class ActiveStandbyElectorBasedElectorService extends AbstractService
     cancelDisconnectTimer();
 
     try {
+      // todo: 切换状态
       rm.getRMContext().getRMAdminService().transitionToActive(req);
     } catch (Exception e) {
       throw new ServiceFailedException("RM could not transition to Active", e);
@@ -206,9 +215,20 @@ public class ActiveStandbyElectorBasedElectorService extends AbstractService
   @SuppressWarnings(value = "unchecked")
   @Override
   public void notifyFatalError(String errorMessage) {
+    /*
+     * 九师兄 jiushixiong lcc
+     *
+     * 注释: 发送选举失败RMFatalEventType. EMBEDDED ELECTOR_ FAILE消息给AsyncDispatcher
+     * 提交的事件由 MFatalEventDispatcher来执行处理
+     *
+     * GenericEventHandler 的 handle 方法就是 将RMFatalEvent 事件 放到 AsyncDispatcher 中
+     *
+     **/
     rm.getRMContext().getDispatcher().getEventHandler().handle(
         new RMFatalEvent(RMFatalEventType.EMBEDDED_ELECTOR_FAILED,
             errorMessage));
+    // Dispatcher dispatcher = createDispatcher();
+   // dispatcher.register (RMFatalEventType.class, new ResourceManager . RMFatalEventDispat
   }
 
   @Override
@@ -260,7 +280,9 @@ public class ActiveStandbyElectorBasedElectorService extends AbstractService
 
   @Override
   public void rejoinElection() {
+    // 九师兄 先退出选举
     elector.quitElection(false);
+    // 九师兄 然后重新选举
     elector.joinElection(localActiveNodeInfo);
   }
 
