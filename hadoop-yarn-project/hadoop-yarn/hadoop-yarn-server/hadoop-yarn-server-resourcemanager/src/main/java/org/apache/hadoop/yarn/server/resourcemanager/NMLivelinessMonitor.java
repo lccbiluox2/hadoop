@@ -47,6 +47,7 @@ public class NMLivelinessMonitor extends AbstractLivelinessMonitor<NodeId> {
 
   @Override
   protected void expire(NodeId id) {
+    // 九师兄 todo: 这里发送了一个RMNodeEvent
     dispatcher.handle(
         new RMNodeEvent(id, RMNodeEventType.EXPIRE)); 
   }

@@ -76,6 +76,12 @@ public class RMActiveServiceContext {
   private final ConcurrentMap<ApplicationId, RMApp> applications =
       new ConcurrentHashMap<ApplicationId, RMApp>();
 
+  /**
+   * 九师兄
+   * 注释: 存储NM状态机实体的集合=注册集合
+   * 1. key = NodeManager ID
+   * 2. value = NodeManager 的状态机
+   **/
   private final ConcurrentMap<NodeId, RMNode> nodes =
       new ConcurrentHashMap<NodeId, RMNode>();
 

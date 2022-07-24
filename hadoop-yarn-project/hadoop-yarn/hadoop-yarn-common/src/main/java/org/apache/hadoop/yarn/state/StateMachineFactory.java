@@ -47,11 +47,36 @@ final public class StateMachineFactory
              <OPERAND, STATE extends Enum<STATE>,
               EVENTTYPE extends Enum<EVENTTYPE>, EVENT> {
 
+  /**
+   * 九师兄 就是将状态机的一个 个过渡的ApplicableTransition 实现串联为一个列表，
+   * 每个节点包含个 ApplicableTransition 实现及指向下一个节点的引用
+   * 链表每次注册的时候，只是往这个transitionsListNode 链表中，增加下一个node节点
+   * 之后会有一个installTopology() 方法的调用来生成状态机表
+   **/
   private final TransitionsListNode transitionsListNode;
 
+  /**
+   * 九师兄
+   * 状态拓扑表，为了提高检索状态对应的过渡map而冗余的数据结构
+   * key = STATE
+   * Map<EVENTTYPE, Transition<OPERAND, STATE, EVENTTYPE, EVENT>>
+   * .     key = EVENTTYPE
+   * .     Transition<OPERAND, STATE, EVENTTYPE, EVENT
+   * 状态1 event1 transition1
+   * 状态1 event2 transition2
+   * 状态1 event3 transition3
+   * 状态2 event4 transition4
+   *
+   * OPERAND 状态机实例
+   * STATE 切换后的状态
+   * EVENTTYPE 事件类型
+   * EVENT 事件
+   **/
   private Map<STATE, Map<EVENTTYPE,
     Transition<OPERAND, STATE, EVENTTYPE, EVENT>>> stateMachineTable;
 
+  // 九师兄 对象创建的时候，内部有限状态机
+  // 九师兄 比如jobImpl，内部有限状态机 JobStateInternal.new
   private STATE defaultInitialState;
 
   private final boolean optimized;
@@ -156,6 +181,8 @@ final public class StateMachineFactory
    * @param preState pre-transition state
    * @param postState post-transition state
    * @param eventType stimulus for the transition
+   *
+   * 注册状态转移四元组
    */
   public StateMachineFactory
              <OPERAND, STATE, EVENTTYPE, EVENT>
@@ -293,12 +320,15 @@ final public class StateMachineFactory
     // We can assume that stateMachineTable is non-null because we call
     //  maybeMakeStateMachineTable() when we build an InnerStateMachine ,
     //  and this code only gets called from inside a working InnerStateMachine .
+    // 九师兄 获取到 旧状态 对应的一个map结构 事件和transition
     Map<EVENTTYPE, Transition<OPERAND, STATE, EVENTTYPE, EVENT>> transitionMap
       = stateMachineTable.get(oldState);
     if (transitionMap != null) {
+      // 九师兄 根据事件类型获取到相应的 transition
       Transition<OPERAND, STATE, EVENTTYPE, EVENT> transition
           = transitionMap.get(eventType);
       if (transition != null) {
+        // 九师兄 调用transition进行状态转移操作
         return transition.doTransition(operand, oldState, event, eventType);
       }
     }
@@ -307,6 +337,7 @@ final public class StateMachineFactory
 
   private synchronized void maybeMakeStateMachineTable() {
     if (stateMachineTable == null) {
+      // 九师兄 如果为空的时候才是真正去生成
       makeStateMachineTable();
     }
   }
@@ -322,10 +353,27 @@ final public class StateMachineFactory
 
     // I use EnumMap here because it'll be faster and denser.  I would
     //  expect most of the states to have at least one transition.
+    // 九师兄 这里我使用EnumMap，因为它更快更密集。我预计大多数州至少会有一次过渡。
+    // 九师兄 初始化 注册表
+    // 1. key : STATE当前状态
+    // 2. value :Map<EVENTTYPE,Transition<OPERAND, STATE, EVENTTYPE, EVENT>>
+    // .         当前状态接收不通事件转换成不同状态的一个四元组
+    // .        2.1  key = EVENTTYPE事件类型
+    // .        2.2  value=Transition<OPERAND, STATE, EVENTTYPE, EVENT> 状态四元组
+    // .             2.2.1 OPERAND=状态机实例
+    // .             2.2.2 STATE=转换后的状态
+    // .             2.2.3 EVENTTYPE=事件类型
+    // .             2.2.4 EVENT=事件
+    // 状态转换四元组:
+    // 1、转换前状态
+    // 2、转换后状态
+    // 3.、事件
+    // 4、转换器
     stateMachineTable
        = new EnumMap<STATE, Map<EVENTTYPE,
                            Transition<OPERAND, STATE, EVENTTYPE, EVENT>>>(prototype);
 
+    // 九师兄 解析 transitionsListNode put到stack中
     for (TransitionsListNode cursor = transitionsListNode;
          cursor != null;
          cursor = cursor.next) {
@@ -433,7 +481,8 @@ final public class StateMachineFactory
    *
    * @param operand the object upon which the returned 
    *                {@link StateMachine} will operate.
-   *                
+   *
+   * 构建状态机实例
    */
   public StateMachine<STATE, EVENTTYPE, EVENT> make(OPERAND operand) {
     return new InternalStateMachine(operand, defaultInitialState);
@@ -453,9 +502,18 @@ final public class StateMachineFactory
   private static final NoopStateTransitionListener NOOP_LISTENER =
       new NoopStateTransitionListener();
 
+  /**
+   * 九师兄 jiushixiong lcc  5Lmd5biI5YWEIA==
+   * 5Lmd5biI5YWEIOacque7j+WFgeiuuO+8jOS4jeWHhui9rOi9vQ==
+   * 未经允许，不得转载。主页：https://blog.csdn.net/qq_21383435
+   *
+   * 状态机的唯一实现类
+   **/
   private class InternalStateMachine
         implements StateMachine<STATE, EVENTTYPE, EVENT> {
+    // 九师兄 5Lmd5biI5YWEIA== 状态机实体
     private final OPERAND operand;
+    // 九师兄 5Lmd5biI5YWEIA== 实体当前状态
     private STATE currentState;
     private final StateTransitionListener<OPERAND, EVENT, STATE> listener;
 
@@ -470,6 +528,7 @@ final public class StateMachineFactory
       this.listener =
           (transitionListener == null) ? NOOP_LISTENER : transitionListener;
       if (!optimized) {
+        // todo: 九师兄 生成状态转移注册表
         maybeMakeStateMachineTable();
       }
     }

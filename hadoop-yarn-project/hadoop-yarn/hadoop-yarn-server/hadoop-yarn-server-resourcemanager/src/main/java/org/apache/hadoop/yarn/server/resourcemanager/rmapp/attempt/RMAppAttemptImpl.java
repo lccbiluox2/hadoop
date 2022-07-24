@@ -355,6 +355,7 @@ public class RMAppAttemptImpl implements RMAppAttempt, Recoverable {
           new ContainerFinishedTransition(
             new AMContainerCrashedBeforeRunningTransition(),
             RMAppAttemptState.LAUNCHED))
+          // 九师兄 LAUNCHED 状态转换成 EXPIRE
       .addTransition(
           RMAppAttemptState.LAUNCHED, RMAppAttemptState.FINAL_SAVING,
           RMAppAttemptEventType.EXPIRE,
@@ -388,6 +389,7 @@ public class RMAppAttemptImpl implements RMAppAttempt, Recoverable {
           new ContainerFinishedTransition(
             new AMContainerCrashedAtRunningTransition(),
             RMAppAttemptState.RUNNING))
+          // 九师兄 RUNNING 状态转换成 EXPIRE
       .addTransition(
           RMAppAttemptState.RUNNING, RMAppAttemptState.FINAL_SAVING,
           RMAppAttemptEventType.EXPIRE,
@@ -412,6 +414,7 @@ public class RMAppAttemptImpl implements RMAppAttempt, Recoverable {
       .addTransition(RMAppAttemptState.FINAL_SAVING, RMAppAttemptState.FINAL_SAVING,
           RMAppAttemptEventType.CONTAINER_FINISHED,
           new ContainerFinishedAtFinalSavingTransition())
+          // 九师兄 FINAL_SAVING 状态转换成 EXPIRE
       .addTransition(RMAppAttemptState.FINAL_SAVING, RMAppAttemptState.FINAL_SAVING,
           RMAppAttemptEventType.EXPIRE,
           new AMExpiredAtFinalSavingTransition())

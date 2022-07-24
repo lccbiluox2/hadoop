@@ -203,6 +203,9 @@ public class RMNodeImpl implements RMNode, EventHandler<RMNodeEvent> {
   private NodeHeartbeatResponse latestNodeHeartBeatResponse = recordFactory
       .newRecordInstance(NodeHeartbeatResponse.class);
 
+  /**
+   * 九师兄 在构建StateMachineFactory的时候一般要指定一个初始状态，一般都是NEW
+   **/
   private static final StateMachineFactory<RMNodeImpl,
                                            NodeState,
                                            RMNodeEventType,
@@ -211,6 +214,7 @@ public class RMNodeImpl implements RMNode, EventHandler<RMNodeEvent> {
                                            NodeState,
                                            RMNodeEventType,
                                            RMNodeEvent>(NodeState.NEW)
+          // 九师兄 下面就是一堆注册状态转换四元组
       //Transitions from NEW state
       .addTransition(NodeState.NEW,
           EnumSet.of(NodeState.RUNNING, NodeState.UNHEALTHY),
@@ -237,6 +241,7 @@ public class RMNodeImpl implements RMNode, EventHandler<RMNodeEvent> {
           RMNodeEventType.GRACEFUL_DECOMMISSION,
           new DecommissioningNodeTransition(NodeState.RUNNING,
               NodeState.DECOMMISSIONING))
+          // 九师兄 running状态变成 lost状态
       .addTransition(NodeState.RUNNING, NodeState.LOST,
           RMNodeEventType.EXPIRE,
           new DeactivateNodeTransition(NodeState.LOST))
@@ -294,6 +299,7 @@ public class RMNodeImpl implements RMNode, EventHandler<RMNodeEvent> {
           RMNodeEventType.GRACEFUL_DECOMMISSION,
           new DecommissioningNodeTransition(NodeState.DECOMMISSIONING,
               NodeState.DECOMMISSIONING))
+          // 九师兄 DECOMMISSIONING 状态变成 LOST状态
       .addTransition(NodeState.DECOMMISSIONING, NodeState.LOST,
           RMNodeEventType.EXPIRE,
           new DeactivateNodeTransition(NodeState.LOST))
@@ -341,6 +347,7 @@ public class RMNodeImpl implements RMNode, EventHandler<RMNodeEvent> {
           RMNodeEventType.GRACEFUL_DECOMMISSION,
           new DecommissioningNodeTransition(NodeState.UNHEALTHY,
               NodeState.DECOMMISSIONING))
+          // 九师兄 UNHEALTHY 状态变成 LOST状态
       .addTransition(NodeState.UNHEALTHY, NodeState.LOST,
           RMNodeEventType.EXPIRE,
           new DeactivateNodeTransition(NodeState.LOST))
@@ -1180,6 +1187,7 @@ public class RMNodeImpl implements RMNode, EventHandler<RMNodeEvent> {
 
     @Override
     public void transition(RMNodeImpl rmNode, RMNodeEvent event) {
+      // 九师兄 我们要看这个方法 超时死掉了，需要做下线处理
       RMNodeImpl.deactivateNode(rmNode, finalState);
     }
   }
@@ -1198,9 +1206,11 @@ public class RMNodeImpl implements RMNode, EventHandler<RMNodeEvent> {
     reportNodeUnusable(rmNode, finalState);
 
     // Deactivate the node
+    // 九师兄  从注册集合中移除
     rmNode.context.getRMNodes().remove(rmNode.nodeId);
     LOG.info("Deactivating Node " + rmNode.nodeId + " as it is now "
         + finalState);
+    // 九师兄 加入到非活跃节点集合
     rmNode.context.getInactiveRMNodes().put(rmNode.nodeId, rmNode);
     if (rmNode.context.getNodesListManager().isUntrackedNode(rmNode.hostName)) {
       rmNode.setUntrackedTimeStamp(Time.monotonicNow());

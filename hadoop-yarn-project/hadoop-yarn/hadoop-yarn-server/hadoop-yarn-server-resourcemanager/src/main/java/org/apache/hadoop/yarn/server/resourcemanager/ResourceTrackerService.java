@@ -404,6 +404,7 @@ public class ResourceTrackerService extends AbstractService implements
   public RegisterNodeManagerResponse registerNodeManager(
       RegisterNodeManagerRequest request) throws YarnException,
       IOException {
+    // 九师兄 获取来注册的NodeManager信息
     NodeId nodeId = request.getNodeId();
     String host = nodeId.getHost();
     int cmPort = nodeId.getPort();
@@ -413,6 +414,7 @@ public class ResourceTrackerService extends AbstractService implements
     Resource physicalResource = request.getPhysicalResource();
     NodeStatus nodeStatus = request.getNodeStatus();
 
+    // 九师兄 生成一个响应，然后在生成的时候，不断的往里面塞入数据
     RegisterNodeManagerResponse response = recordFactory
         .newRecordInstance(RegisterNodeManagerResponse.class);
 
@@ -496,9 +498,15 @@ public class ResourceTrackerService extends AbstractService implements
     response.setNMTokenMasterKey(nmTokenSecretManager
         .getCurrentKey());
 
+    /**
+     * 九师兄 生成一个用来管理 NodeManager 的状态机实例
+     **/
     RMNode rmNode = new RMNodeImpl(nodeId, rmContext, host, cmPort, httpPort,
         resolve(host), capability, nodeManagerVersion, physicalResource);
 
+    /**
+     * 九师兄 完成注册，一般的注册都是给注册组件生成一个Info对象，然后放到一个内存数据结构中
+     **/
     RMNode oldNode = this.rmContext.getRMNodes().putIfAbsent(nodeId, rmNode);
     if (oldNode == null) {
       RMNodeStartedEvent startEvent = new RMNodeStartedEvent(nodeId,
@@ -553,6 +561,10 @@ public class ResourceTrackerService extends AbstractService implements
     // On every node manager register we will be clearing NMToken keys if
     // present for any running application.
     this.nmTokenSecretManager.removeNodeKey(nodeId);
+    /**
+     * 九师兄 一个NodeManager来注册，那么你是不是要管理 这个NodeManager是否死活
+     *      因此也需要注册到nmLivelinessMonitor组件中，来验证NodeManager是否健康
+     **/
     this.nmLivelinessMonitor.register(nodeId);
     
     // Handle received container status, this should be processed after new
@@ -660,6 +672,7 @@ public class ResourceTrackerService extends AbstractService implements
     }
 
     // Send ping
+    // 九师兄 todo: 更新最后一次注册时间
     this.nmLivelinessMonitor.receivedPing(nodeId);
     this.decommissioningWatcher.update(rmNode, remoteNodeStatus);
 

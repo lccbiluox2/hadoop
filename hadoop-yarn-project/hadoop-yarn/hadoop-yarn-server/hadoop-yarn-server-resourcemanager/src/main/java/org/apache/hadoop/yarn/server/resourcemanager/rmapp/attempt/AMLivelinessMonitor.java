@@ -51,6 +51,7 @@ public class AMLivelinessMonitor extends AbstractLivelinessMonitor<ApplicationAt
 
   @Override
   protected void expire(ApplicationAttemptId id) {
+    // 九师兄 这里是放入了一个事件是RMAppAttemptEvent
     dispatcher.handle(
         new RMAppAttemptEvent(id, RMAppAttemptEventType.EXPIRE));
   }

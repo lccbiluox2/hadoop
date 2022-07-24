@@ -165,6 +165,10 @@ public class NodeManager extends CompositeService
     return nmStartupTime;
   }
 
+  /*
+   * 九师兄 https://blog.csdn.net/qq_21383435/article/details/125956947
+   * 【Yarn】Yarn NodeManager注册和心跳
+   **/
   protected NodeStatusUpdater createNodeStatusUpdater(Context context,
       Dispatcher dispatcher, NodeHealthCheckerService healthChecker) {
     return new NodeStatusUpdaterImpl(context, dispatcher, healthChecker,

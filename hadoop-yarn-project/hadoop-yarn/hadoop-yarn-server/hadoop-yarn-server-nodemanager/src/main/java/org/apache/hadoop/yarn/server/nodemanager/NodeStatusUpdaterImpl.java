@@ -100,7 +100,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.hadoop.thirdparty.com.google.common.annotations.VisibleForTesting;
-
+/*
+ * 九师兄 https://blog.csdn.net/qq_21383435/article/details/125956947
+ * 【Yarn】Yarn NodeManager注册和心跳
+ **/
 public class NodeStatusUpdaterImpl extends AbstractService implements
     NodeStatusUpdater {
 
@@ -189,8 +192,11 @@ public class NodeStatusUpdaterImpl extends AbstractService implements
 
   @Override
   protected void serviceInit(Configuration conf) throws Exception {
+    // 九师兄 获取资源信息
     this.totalResource = NodeManagerHardwareUtils.getNodeResources(conf);
+    // 九师兄 总的内存大小
     long memoryMb = totalResource.getMemorySize();
+    // 九师兄 虚拟内存
     float vMemToPMem =
         conf.getFloat(
             YarnConfiguration.NM_VMEM_PMEM_RATIO,
@@ -206,6 +212,7 @@ public class NodeStatusUpdaterImpl extends AbstractService implements
     metrics.addResource(totalResource);
 
     // Get actual node physical resources
+    // 九师兄 物理资源的对象
     long physicalMemoryMb = memoryMb;
     int physicalCores = virtualCores;
     ResourceCalculatorPlugin rcp =
@@ -214,6 +221,7 @@ public class NodeStatusUpdaterImpl extends AbstractService implements
       physicalMemoryMb = rcp.getPhysicalMemorySize() / (1024 * 1024);
       physicalCores = rcp.getNumProcessors();
     }
+    // 九师兄 资源抽象类
     this.physicalResource =
         Resource.newInstance(physicalMemoryMb, physicalCores);
 
@@ -270,9 +278,20 @@ public class NodeStatusUpdaterImpl extends AbstractService implements
     try {
       // Registration has to be in start so that ContainerManager can get the
       // perNM tokens needed to authenticate ContainerTokens.
+      /*
+       * 九师兄 获取 ResourceTracker 通讯代理，因为你要向ResourceManager上报资源信息
+       * 你肯定要联系这个呀，所以需要获取连接信息
+       **/
       this.resourceTracker = getRMClient();
+      /**
+       * 九师兄  NodeManager 向 resourceManager注册
+       **/
       registerWithRM();
+      /**
+       * 九师兄  子service启动
+       **/
       super.serviceStart();
+      // todo: 启动心跳服务
       startStatusUpdater();
     } catch (Exception e) {
       String errorMessage = "Unexpected error starting NodeStatusUpdater";
@@ -391,8 +410,10 @@ public class NodeStatusUpdaterImpl extends AbstractService implements
     // ContainerManagerImpl#startContainers to avoid race condition
     // during RM recovery
     synchronized (this.context) {
+      // 九师兄 构建container状态对象
       List<NMContainerStatus> containerReports = getNMContainerStatuses();
       NodeStatus nodeStatus = getNodeStatus(0);
+      // 九师兄 构建 RegisterNodeManagerRequest
       RegisterNodeManagerRequest request =
           RegisterNodeManagerRequest.newInstance(nodeId, httpPort, totalResource,
               nodeManagerVersionId, containerReports, getRunningApplications(),
@@ -413,6 +434,12 @@ public class NodeStatusUpdaterImpl extends AbstractService implements
           request.setLogAggregationReportsForApps(logAggregationReports);
         }
       }
+      /*
+       * 九师兄 todo: NodeManager 向 ResourceManager 注册
+       *      现在我们假设以这个为分界线，因为我们这里是发送请求，所以
+       * .    1. 这个代码之前都是在准备请求 所以我们会设置一些东西
+       * .    2. 这个代码之后都是在解析响应 我们会判断返回信息
+       **/
       regNMResponse =
           resourceTracker.registerNodeManager(request);
       // Make sure rmIdentifier is set before we release the lock
@@ -430,6 +457,7 @@ public class NodeStatusUpdaterImpl extends AbstractService implements
     }
 
     // if ResourceManager version is too old then shutdown
+    // 如果ResourceManager版本太旧，则关闭
     if (!minimumResourceManagerVersion.equals("NONE")){
       if (minimumResourceManagerVersion.equals("EqualToNM")){
         minimumResourceManagerVersion = nodeManagerVersionId;
@@ -441,6 +469,7 @@ public class NodeStatusUpdaterImpl extends AbstractService implements
         throw new YarnRuntimeException("Shutting down the Node Manager. "
             + message);
       }
+      // 版本不匹配
       if (VersionUtil.compareVersions(rmVersion,minimumResourceManagerVersion) < 0) {
         String message = "The Resource Manager's version ("
             + rmVersion +") is less than the minimum "
@@ -828,9 +857,11 @@ public class NodeStatusUpdaterImpl extends AbstractService implements
   }
 
   protected void startStatusUpdater() {
+    // 九师兄 构建心跳线程
     statusUpdaterRunnable = new StatusUpdaterRunnable();
     statusUpdater =
         new Thread(statusUpdaterRunnable, "Node Status Updater");
+    // 九师兄 启动心跳线程
     statusUpdater.start();
   }
 
@@ -1305,6 +1336,7 @@ public class NodeStatusUpdaterImpl extends AbstractService implements
       while (!isStopped) {
         // Send heartbeat
         try {
+          // 九师兄 构建心跳对象
           NodeHeartbeatResponse response = null;
           Set<NodeLabel> nodeLabelsForHeartbeat =
               nodeLabelsHandler.getNodeLabelsForHeartbeat();
@@ -1335,7 +1367,10 @@ public class NodeStatusUpdaterImpl extends AbstractService implements
 
           request.setTokenSequenceNo(
               NodeStatusUpdaterImpl.this.tokenSequenceNo);
+          // 九师兄 todo：发送心跳请求
           response = resourceTracker.nodeHeartbeat(request);
+          // 九师兄 todo: 解析心跳请求
+
           //get next heartbeat interval from response
           nextHeartBeatInterval = response.getNextHeartBeatInterval();
           updateMasterKeys(response);

@@ -79,6 +79,8 @@ public class RMAppLifetimeMonitor
     }
     String diagnostics = "Application is killed by ResourceManager as it"
         + " has exceeded the lifetime period.";
+    // 九师兄 然后这里也要发送一个事件，这个事件是RMAppEventType.KILL 因为下线ResourceManager的时候
+    //  无论对方是否下线成功，最终都要保证彻底被杀死
     rmContext.getDispatcher().getEventHandler()
         .handle(new RMAppEvent(appId, RMAppEventType.KILL, diagnostics));
   }
