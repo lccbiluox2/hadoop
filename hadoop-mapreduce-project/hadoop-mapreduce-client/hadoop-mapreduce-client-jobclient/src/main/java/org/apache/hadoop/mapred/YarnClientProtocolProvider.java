@@ -31,6 +31,7 @@ public class YarnClientProtocolProvider extends ClientProtocolProvider {
   @Override
   public ClientProtocol create(Configuration conf) throws IOException {
     if (MRConfig.YARN_FRAMEWORK_NAME.equals(conf.get(MRConfig.FRAMEWORK_NAME))) {
+      /// 九师兄 todo: 创建了一个 YARNRunner
       return new YARNRunner(conf);
     }
     return null;

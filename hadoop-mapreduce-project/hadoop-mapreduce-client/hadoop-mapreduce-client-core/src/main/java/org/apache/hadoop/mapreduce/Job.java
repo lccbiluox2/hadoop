@@ -1533,6 +1533,14 @@ public class Job extends JobContextImpl implements JobContext, AutoCloseable {
           throws IOException, InterruptedException, ClassNotFoundException {
     if (cluster == null) {
       // 如果为空 那么创建一个
+      /*
+      * 九师兄 上面提交的时候吗，已经创建了 Cluster 为什么这时候又要创建一次呢
+      *
+      * 因为有两种情况需要考虑:
+      * 1、通过shell 命令提交
+      * 2、本地调试: MR程序中的最后 一句代码就是: job. waitForCompetetion(){job. submit()}
+      *    这里就在这里初始化 Cluster 就是为了拿到 与 ResourceManager的通讯代理对象
+      */
       cluster =
         ugi.doAs(new PrivilegedExceptionAction<Cluster>() {
                    public Cluster run()
@@ -1572,9 +1580,12 @@ public class Job extends JobContextImpl implements JobContext, AutoCloseable {
     final JobSubmitter submitter =
         getJobSubmitter(cluster.getFileSystem(), cluster.getClient());
     status = ugi.doAs(new PrivilegedExceptionAction<JobStatus>() {
+      @Override
       public JobStatus run() throws IOException, InterruptedException, 
       ClassNotFoundException {
         // 内置的提交流程 向集群提交了job信息，这里是提交job任务的核心代码
+        // 九师兄 最终将任务信息相关的配置，依赖jar包， 最终统一上传到HDFS 的一个临时工作目录
+        // 如果将来一个NodeManager 里面需要运行一个Task, 则从HDFS中下载这些东西!
         return submitter.submitJobInternal(Job.this, cluster);
       }
     });

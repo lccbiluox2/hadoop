@@ -363,6 +363,8 @@ public class RMAppManager implements EventHandler<RMAppManagerEvent>,
     // constructor.
     //
     // 起始时间为-1。它最终将在RMAppImpl构造函数中设置。
+    // 2022/7/27 下午10:53 九师兄 todo：这里飞非常非常重要的地方，这里创建了一个有限状态机，为了
+    // 2022/7/27 下午10:53 九师兄 更好的来管理 Application的状态
     RMAppImpl application = createAndPopulateNewRMApp(
         submissionContext, submitTime, user, false, -1, null);
     try {
@@ -379,8 +381,19 @@ public class RMAppManager implements EventHandler<RMAppManagerEvent>,
         // enqueued should be guaranteed to be first processed when dispatcher
         // gets started.
         //
-        // 此时Dispatcher还没有启动，所以应该保证在Dispatcher启动时首先处理
-        // 这些进入队列的START事件。
+        // 2022/7/27 九师兄
+        // todo:
+        //  此时Dispatcher还没有启动，所以应该保证在Dispatcher启动时首先处理
+        //  这些进入队列的START事件。
+        // 2022/7/27 九师兄 rmContext 是上下文对象
+        // 2022/7/27 九师兄 rmContext.getDispatcher() 是 AsyncDispatcher
+        // 2022/7/27 九师兄 getEventHandler 就是 GenericEventHandler 这个负责将件事提交到对应的队列
+        // 2022/7/27 九师兄 AsyncDispatcher 接受到事件的时候，执行事件的分发，就是找到对应事件的处理器
+        // 2022/7/27  下午10:59 九师兄  RMAppEvent RMAppEventType 对应的处理器 ApplicationEventDispatcher
+        // 2022/7/27  下午11:04 九师兄 ApplicationEventDispatcher的handle方法就是把事件丢给对应状态机
+        // 2022/7/27  下午11:04 九师兄 这里我们是如何找到对应的handle呢，我们可以搜索RMAppEventType.class
+        // 2022/7/27  下午11:06 九师兄 然后可以找打如下代码 rmDispatcher.register(RMAppEventType.class,new ResourceManager.ApplicationEventDispatcher(rmContext));
+        // 2022/7/27 下午11:11 九师兄 此处我们跳转到 ApplicationEventDispatcher
         this.rmContext.getDispatcher().getEventHandler()
             .handle(new RMAppEvent(applicationId, RMAppEventType.START));
       }

@@ -313,12 +313,23 @@ public class CLI extends Configured implements Tool {
     }
 
     // initialize cluster
+    /*
+    * 九师兄 这里包装很深的  九师兄 创建 Cluster
+    * 1. 先创建了Cluster
+    * 2. 然后是 ClientProtocolProvider  YarnClientProtocolProvider
+    * 3. YARNRunner
+    * 4. ResourceMgrDelegate
+    * 5. YarnClient
+    * 6. YarnClientImpl
+    */
     cluster = createCluster();
         
     // Submit the request
     try {
       if (submitJobFile != null) {
+        // 九师兄 获取job实例
         Job job = Job.getInstance(new JobConf(submitJobFile));
+        // 九师兄 todo: 提交任务
         job.submit();
         System.out.println("Created job " + job.getJobID());
         exitCode = 0;
