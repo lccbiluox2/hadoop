@@ -106,8 +106,13 @@ public class ResourceMgrDelegate extends YarnClient {
   public ResourceMgrDelegate(YarnConfiguration conf) {
     super(ResourceMgrDelegate.class.getName());
     this.conf = conf;
+    /**
+    * 九师兄 todo: 重点构建了一个 YarnClient
+    */
     this.client = YarnClient.createYarnClient();
+    /// 九师兄  todo: 初始化方法 调研serviceInit方法
     init(conf);
+    /// 九师兄 todo: 启动方法 调用serviceStart方法
     start();
   }
 

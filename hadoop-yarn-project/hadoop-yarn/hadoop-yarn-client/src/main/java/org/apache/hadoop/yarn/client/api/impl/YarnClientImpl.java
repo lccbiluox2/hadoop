@@ -176,6 +176,7 @@ public class YarnClientImpl extends YarnClient {
 
   public YarnClientImpl() {
     super(YarnClientImpl.class.getName());
+    // 九师兄 然后我们可以看看 serviceInit 方法
   }
 
   // 服务启动，初始化rmClient
@@ -250,6 +251,7 @@ public class YarnClientImpl extends YarnClient {
   protected void serviceStart() throws Exception {
     try {
       // 底层会调用Proxy.newProxyInstanc
+      // 九师兄 todo: 创建得到一个RM的通讯代理对象 通讯协议是 ApplicationClientProtocol
       rmClient = ClientRMProxy.createRMProxy(getConfig(),
           ApplicationClientProtocol.class);
       if (historyServiceEnabled) {
@@ -331,24 +333,28 @@ public class YarnClientImpl extends YarnClient {
 
     //TODO: YARN-1763:Handle RM failovers during the submitApplication call.
     // //aw:继续提交具体实现类是: ApplicationClientProtocolPBClientImpl
+    // 九师兄 rmClient 就是ResourceManager的代理对象
+    // 九师兄
+    // RPC 客户端: YarnClient
+    // RPC服务端: ClientRMService
     rmClient.submitApplication(request);
 
     int pollCount = 0;
     long startTime = System.currentTimeMillis();
-    EnumSet<YarnApplicationState> waitingStates =
+    EnumSet<YarnApplicationState> waitingStates = 
                                  EnumSet.of(YarnApplicationState.NEW,
                                  YarnApplicationState.NEW_SAVING,
                                  YarnApplicationState.SUBMITTED);
-    EnumSet<YarnApplicationState> failToSubmitStates =
+    EnumSet<YarnApplicationState> failToSubmitStates = 
                                   EnumSet.of(YarnApplicationState.FAILED,
-                                  YarnApplicationState.KILLED);
+                                  YarnApplicationState.KILLED);		
     while (true) {
       try {
         ApplicationReport appReport = getApplicationReport(applicationId);
         YarnApplicationState state = appReport.getYarnApplicationState();
         if (!waitingStates.contains(state)) {
           if(failToSubmitStates.contains(state)) {
-            throw new YarnException("Failed to submit " + applicationId +
+            throw new YarnException("Failed to submit " + applicationId + 
                 " to YARN : " + appReport.getDiagnostics());
           }
           LOG.info("Submitted application " + applicationId);

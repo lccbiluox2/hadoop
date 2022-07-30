@@ -214,6 +214,14 @@ class JobSubmitter {
       // Create the splits for the job
       LOG.debug("Creating splits at " + jtFs.makeQualified(submitJobDir));
       //aw:，生成本次作业的输入切片信息，并把切片信息写入作业准备区submitJobDir
+      /*
+      * 九师兄 todo:注释: MR程序中的ReduceTask 是由用户计算逻辑决定的。
+      *      但是MapTask 到底多少用户是不指定的，需要MR自己来计算
+      * MR切片机制:
+      *  List< InputSplit> splits = FileInputFormat. getSpLits (JobConf job);
+      * maps = splits.size( )
+      * 一个InputSplit 就是一个逻辑切片，一个逻辑切片，就是要启动一个MapTask(
+       */
       int maps = writeSplits(job, submitJobDir);
       conf.setInt(MRJobConfig.NUM_MAPS, maps);
       LOG.info("number of splits:" + maps);
@@ -227,6 +235,9 @@ class JobSubmitter {
 
       // write "queue admins of the queue to which job is being submitted"
       // to job file.
+      /***
+       * 九师兄 解析提交队列
+       */
       String queue = conf.get(MRJobConfig.QUEUE_NAME,
           JobConf.DEFAULT_QUEUE_NAME);
       AccessControlList acl = submitClient.getQueueAdmins(queue);
@@ -260,6 +271,7 @@ class JobSubmitter {
 
       // Write job file to submit dir
       // todo: 走到这行，向loacl和yarn提交了job的所有信息 记录在job.xml中
+      // 九师兄 所有的配置都完成了，那么需要将配置文件发送到hdfs上
       writeConf(conf, submitJobFile);
       
       //

@@ -92,6 +92,7 @@ public abstract class YarnClient extends AbstractService {
   @Public
   public static YarnClient createYarnClient() {
     // YarnClient的具体实现YarnClientImpl
+    /// 九师兄 todo: 创建了 YarnClient
     YarnClient client = new YarnClientImpl();
     return client;
   }
@@ -113,7 +114,6 @@ public abstract class YarnClient extends AbstractService {
    * @throws YarnException
    * @throws IOException
    */
-  // 创建应用，返回YarnClientApplication对象，主要是里面的ApplicationSubmissionContext和GetNewApplicationResponse两个对象
   public abstract YarnClientApplication createApplication()
       throws YarnException, IOException;
 

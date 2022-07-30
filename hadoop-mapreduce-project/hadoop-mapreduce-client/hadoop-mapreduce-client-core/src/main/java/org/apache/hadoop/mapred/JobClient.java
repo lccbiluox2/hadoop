@@ -559,6 +559,7 @@ public class JobClient extends CLI implements AutoCloseable {
    */
   public RunningJob submitJob(final JobConf conf) throws FileNotFoundException,
                                                   IOException {
+    /// 九师兄 第一内置的提交
     return submitJobInternal(conf);
   }
 
@@ -572,7 +573,9 @@ public class JobClient extends CLI implements AutoCloseable {
         @Override
         public Job run() throws IOException, ClassNotFoundException, 
           InterruptedException {
+          /// 九师兄创建一个job
           Job job = Job.getInstance(conf);
+          /// 九师兄 todo: 执行提交
           job.submit();
           return job;
         }

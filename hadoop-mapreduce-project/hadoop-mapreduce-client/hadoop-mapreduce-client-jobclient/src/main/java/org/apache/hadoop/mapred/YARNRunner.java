@@ -150,6 +150,7 @@ public class YARNRunner implements ClientProtocol {
    * @param conf the configuration object for the client
    */
   public YARNRunner(Configuration conf) {
+    /// 九师兄 todo: 最终的构建方法都是赋值，因此重要的地方在 ResourceMgrDelegate
    this(conf, new ResourceMgrDelegate(new YarnConfiguration(conf)));
   }
 
@@ -322,13 +323,14 @@ public class YARNRunner implements ClientProtocol {
     
     addHistoryToken(ts);
 
-    // 封装本地资源信息
+    // 九师兄 ToDo： 封装本地资源信息 // 九师兄 饱含一切信息的
+    // 九师兄 todo: 这里有个重要的东西 是拼装了一个启动shelL命令
     ApplicationSubmissionContext appContext =
       createApplicationSubmissionContext(conf, jobSubmitDir, ts);
 
     // Submit to ResourceManager
     try {
-      // 提交任务 获取applicationId
+      // 九师兄  todo: 提交任务 获取applicationId
       ApplicationId applicationId =
           resMgrDelegate.submitApplication(appContext);
 
@@ -443,12 +445,24 @@ public class YARNRunner implements ClientProtocol {
     return localResources;
   }
 
+  /***
+   * todo： 九师兄 最终的命令结构是  JAVA_HOME/bin/java -Dxx=xx  -Dxx=xx MRAppMaster 参数1 参数2
+   *
+   * 如果RM接收到这个命令:
+   * 1、首先申请一个Container
+   * 2、发送RPC请求给对应的NM，让该NM启动Container ， 启动COntianer 之后的重要动作就是:执行这个 shell命令
+   *  在当前服务器中，启动了一个新的JVM : MRAppMaster
+   *  所以你在服务器上执行jps命令，然后可能看到如下列表信息
+   *  JVM进程列表: datanode , nodemanager, MRAppMaster,
+   */
   private List<String> setupAMCommand(Configuration jobConf) {
+    // 九师兄 命令参数容器
     List<String> vargs = new ArrayList<>(8);
+    // 九师兄 todo；第一个加入的是 JAVA_HOME/bin/java
     vargs.add(MRApps.crossPlatformifyMREnv(jobConf, Environment.JAVA_HOME)
         + "/bin/java");
 
-    // 默认临时目录
+    // todo； 默认临时目录
     Path amTmpDir =
         new Path(MRApps.crossPlatformifyMREnv(conf, Environment.PWD),
             YarnConfiguration.DEFAULT_CONTAINER_TEMP_DIR);
@@ -499,6 +513,7 @@ public class YARNRunner implements ClientProtocol {
       }
     }
 
+    // 九师兄 todo: map reducer 的驱动启动类 org.apache.hadoop.mapreduce.v2.app.MRAppMaster
     vargs.add(MRJobConfig.APPLICATION_MASTER_CLASS);
     vargs.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR +
         Path.SEPARATOR + ApplicationConstants.STDOUT);
@@ -584,7 +599,7 @@ public class YARNRunner implements ClientProtocol {
         ByteBuffer.wrap(dob.getData(), 0, dob.getLength());
 
     // Setup ContainerLaunchContext for AM container
-    // 设置运行applicationMaster运行的命令
+    // 九师兄 todo: 设置运行applicationMaster运行的命令
     List<String> vargs = setupAMCommand(jobConf);
     ContainerLaunchContext amContainer = setupContainerLaunchContextForAM(
         jobConf, localResources, securityTokens, vargs);
