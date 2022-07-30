@@ -153,6 +153,7 @@ public class YarnClientImpl extends YarnClient {
   private static final Logger LOG = LoggerFactory
           .getLogger(YarnClientImpl.class);
 
+  // 应用客户端协议 ApplicationClientProtoco
   protected ApplicationClientProtocol rmClient;
   protected long submitPollIntervalMillis;
   private long asyncApiPollIntervalMillis;
@@ -177,6 +178,7 @@ public class YarnClientImpl extends YarnClient {
     super(YarnClientImpl.class.getName());
   }
 
+  // 服务启动，初始化rmClient
   @SuppressWarnings("deprecation")
   @Override
   protected void serviceInit(Configuration conf) throws Exception {
@@ -236,9 +238,18 @@ public class YarnClientImpl extends YarnClient {
     return TimelineClient.createTimelineClient();
   }
 
+  /*
+   * 九师兄
+   * // rmClient会去调用ApplicationClientProtocol接口中定义的方法
+     // 方法的具体实现见ApplicationClientProtocolPBClientImpl（这里发生RPC调用）
+     // 会调用ApplicationClientProtocolPB（RPC代理接口）
+     // 方法具体实现ApplicationClientProtocolPBServiceImpl
+     // 然后调用RM端的ClientRMService
+   **/
   @Override
   protected void serviceStart() throws Exception {
     try {
+      // 底层会调用Proxy.newProxyInstanc
       rmClient = ClientRMProxy.createRMProxy(getConfig(),
           ApplicationClientProtocol.class);
       if (historyServiceEnabled) {
@@ -324,20 +335,20 @@ public class YarnClientImpl extends YarnClient {
 
     int pollCount = 0;
     long startTime = System.currentTimeMillis();
-    EnumSet<YarnApplicationState> waitingStates = 
+    EnumSet<YarnApplicationState> waitingStates =
                                  EnumSet.of(YarnApplicationState.NEW,
                                  YarnApplicationState.NEW_SAVING,
                                  YarnApplicationState.SUBMITTED);
-    EnumSet<YarnApplicationState> failToSubmitStates = 
+    EnumSet<YarnApplicationState> failToSubmitStates =
                                   EnumSet.of(YarnApplicationState.FAILED,
-                                  YarnApplicationState.KILLED);		
+                                  YarnApplicationState.KILLED);
     while (true) {
       try {
         ApplicationReport appReport = getApplicationReport(applicationId);
         YarnApplicationState state = appReport.getYarnApplicationState();
         if (!waitingStates.contains(state)) {
           if(failToSubmitStates.contains(state)) {
-            throw new YarnException("Failed to submit " + applicationId + 
+            throw new YarnException("Failed to submit " + applicationId +
                 " to YARN : " + appReport.getDiagnostics());
           }
           LOG.info("Submitted application " + applicationId);

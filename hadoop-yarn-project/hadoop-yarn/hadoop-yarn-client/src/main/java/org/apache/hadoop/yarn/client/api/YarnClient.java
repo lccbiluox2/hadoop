@@ -80,15 +80,18 @@ import org.apache.hadoop.yarn.exceptions.YARNFeatureNotEnabledException;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.security.AMRMTokenIdentifier;
 
+// 抽象类YarnClient，实现类YarnClientImpl
 @InterfaceAudience.Public
 @InterfaceStability.Stable
 public abstract class YarnClient extends AbstractService {
 
   /**
    * Create a new instance of YarnClient.
+   *   // 创建一个新的YarnClient实例
    */
   @Public
   public static YarnClient createYarnClient() {
+    // YarnClient的具体实现YarnClientImpl
     YarnClient client = new YarnClientImpl();
     return client;
   }
@@ -110,6 +113,7 @@ public abstract class YarnClient extends AbstractService {
    * @throws YarnException
    * @throws IOException
    */
+  // 创建应用，返回YarnClientApplication对象，主要是里面的ApplicationSubmissionContext和GetNewApplicationResponse两个对象
   public abstract YarnClientApplication createApplication()
       throws YarnException, IOException;
 
@@ -146,6 +150,8 @@ public abstract class YarnClient extends AbstractService {
    * @throws IOException
    * @see #createApplication()
    */
+  // 向YARN提交应用，阻塞调用，直到提交成功、被RM接受之后才会返回ApplicationId
+  // 这里直接提交的是ApplicationSubmissionContext对象
   public abstract ApplicationId submitApplication(
       ApplicationSubmissionContext appContext) throws YarnException,
       IOException;
@@ -180,6 +186,8 @@ public abstract class YarnClient extends AbstractService {
    * @throws IOException
    * @see #getQueueAclsInfo()
    */
+  // kill掉指定applicationId的应用
+  // 比如 yarn application -kill xxx-xxxx-1
   public abstract void killApplication(ApplicationId applicationId) throws YarnException,
       IOException;
 
@@ -226,6 +234,8 @@ public abstract class YarnClient extends AbstractService {
    * @throws YarnException
    * @throws IOException
    */
+  // 获取指定applicationId的应用报告信息（ApplicationReport有约19个成员）
+  // WEB-UI页面能够看到每个应用的相关信息；proto message: ApplicationReportProto
   public abstract ApplicationReport getApplicationReport(ApplicationId appId)
       throws YarnException, IOException;
 
@@ -252,6 +262,7 @@ public abstract class YarnClient extends AbstractService {
    * @throws YarnException
    * @throws IOException
    */
+  // 获取应用的AMRMToken，此Token用于保证AM约RM之间的通信安全
   public abstract org.apache.hadoop.security.token.Token<AMRMTokenIdentifier>
       getAMRMToken(ApplicationId appId) throws YarnException, IOException;
 
@@ -270,6 +281,7 @@ public abstract class YarnClient extends AbstractService {
    * @throws YarnException
    * @throws IOException
    */
+  // 获取YARN集群中所有应用的应用报告信息
   public abstract List<ApplicationReport> getApplications()
       throws YarnException, IOException;
 
@@ -290,6 +302,8 @@ public abstract class YarnClient extends AbstractService {
    * @throws YarnException
    * @throws IOException
    */
+  // 根据应用类型获取应用报告信息，比如类型：Apache Flink 或者 MAPREDUCE
+  // 具体实现（RM的“服务端”）见ClientRMService里的getApplications方法
   public abstract List<ApplicationReport> getApplications(
       Set<String> applicationTypes) throws YarnException, IOException;
 
@@ -310,6 +324,8 @@ public abstract class YarnClient extends AbstractService {
    * @throws YarnException
    * @throws IOException
    */
+  // 根据一个或多个应用状态获取集群中应用的应用报告信息
+  // NEW NEW_SAVING SUBMITTED ACCEPTED RUNNING FINISHED FAILED KILLED
   public abstract List<ApplicationReport>
       getApplications(EnumSet<YarnApplicationState> applicationStates)
           throws YarnException, IOException;
@@ -332,6 +348,7 @@ public abstract class YarnClient extends AbstractService {
    * @throws YarnException
    * @throws IOException
    */
+  // 根据应用类型和应用状态获取应用的报告信息
   public abstract List<ApplicationReport> getApplications(
       Set<String> applicationTypes,
       EnumSet<YarnApplicationState> applicationStates) throws YarnException,
@@ -356,6 +373,7 @@ public abstract class YarnClient extends AbstractService {
    * @throws YarnException
    * @throws IOException
    */
+  // 条件：调度队列、用户、应用类型、应用状态
   public abstract List<ApplicationReport> getApplications(
       Set<String> applicationTypes,
       EnumSet<YarnApplicationState> applicationStates,
@@ -421,6 +439,7 @@ public abstract class YarnClient extends AbstractService {
    * @throws YarnException
    * @throws IOException
    */
+  // 获取YARN集群的（健康等）指标数据
   public abstract YarnClusterMetrics getYarnClusterMetrics() throws YarnException,
       IOException;
 
@@ -435,6 +454,8 @@ public abstract class YarnClient extends AbstractService {
    * @throws YarnException
    * @throws IOException
    */
+  // 获取集群节点的报告信息
+  // 具体实现（RM的“服务端”）见ClientRMService里的getClusterNodes方法
   public abstract List<NodeReport> getNodeReports(NodeState... states)
       throws YarnException, IOException;
 
@@ -450,6 +471,8 @@ public abstract class YarnClient extends AbstractService {
    * @throws YarnException
    * @throws IOException
    */
+  // 获取代理Token用于与YARN进行安全通信
+  // 具体实现（RM的“服务端”）见ClientRMService里的getDelegationToken方法
   public abstract Token getRMDelegationToken(Text renewer)
       throws YarnException, IOException;
 
@@ -466,6 +489,8 @@ public abstract class YarnClient extends AbstractService {
    *           access-control restrictions.
    * @throws IOException
    */
+  // 获取指定队列名称的队列信息（信息封装在QueueInfo里面，scheduler里面获取）
+  // QueueInfoProto
   public abstract QueueInfo getQueueInfo(String queueName) throws YarnException,
       IOException;
 
@@ -479,6 +504,7 @@ public abstract class YarnClient extends AbstractService {
    * @throws YarnException
    * @throws IOException
    */
+  // 获取全部队列
   public abstract List<QueueInfo> getAllQueues() throws YarnException, IOException;
 
   /**
@@ -490,6 +516,7 @@ public abstract class YarnClient extends AbstractService {
    * @throws YarnException
    * @throws IOException
    */
+  // 获取root（根）队列的信息
   public abstract List<QueueInfo> getRootQueueInfos() throws YarnException, IOException;
 
   /**
@@ -505,6 +532,7 @@ public abstract class YarnClient extends AbstractService {
    * @throws YarnException
    * @throws IOException
    */
+  // 获取指定队列名称下的子队列信息
   public abstract List<QueueInfo> getChildQueueInfos(String parent) throws YarnException,
       IOException;
 
@@ -519,6 +547,7 @@ public abstract class YarnClient extends AbstractService {
    * @throws YarnException
    * @throws IOException
    */
+  // 获取队列的ACL权限信息
   public abstract List<QueueUserACLInfo> getQueueAclsInfo() throws YarnException,
       IOException;
   
@@ -541,6 +570,7 @@ public abstract class YarnClient extends AbstractService {
    *         not found
    * @throws IOException
    */
+  // 获取指定应用尝试ID对应ApplicationAttempt的报告信息【翻译真别扭】
   public abstract ApplicationAttemptReport getApplicationAttemptReport(
       ApplicationAttemptId applicationAttemptId) throws YarnException, IOException;
 
@@ -555,6 +585,7 @@ public abstract class YarnClient extends AbstractService {
    * @throws YarnException
    * @throws IOException
    */
+  // 获取指定应用的全部ApplicationAttempt的报告信息
   public abstract List<ApplicationAttemptReport> getApplicationAttempts(
       ApplicationId applicationId) throws YarnException, IOException;
 
@@ -575,6 +606,8 @@ public abstract class YarnClient extends AbstractService {
    * @throws ContainerNotFoundException if container not found.
    * @throws IOException
    */
+  // 获取指定容器ID的Container报告信息
+  // $ yarn container -status <Container ID>
   public abstract ContainerReport getContainerReport(ContainerId containerId)
       throws YarnException, IOException;
 
@@ -589,6 +622,8 @@ public abstract class YarnClient extends AbstractService {
    * @throws YarnException
    * @throws IOException
    */
+  // 获取指定应用尝试ID下的Container报告信息
+  // $ yarn container -list <Application Attempt ID>
   public abstract List<ContainerReport> getContainers(
       ApplicationAttemptId applicationAttemptId) throws YarnException,
       IOException;
@@ -605,6 +640,7 @@ public abstract class YarnClient extends AbstractService {
    * @throws YarnException
    * @throws IOException
    */
+  // 应用还可以在队列之间移动，将指定应用移动到指定的队列中去
   public abstract void moveApplicationAcrossQueues(ApplicationId appId,
       String queue) throws YarnException, IOException;
 
@@ -664,6 +700,7 @@ public abstract class YarnClient extends AbstractService {
    * @throws IOException
    * 
    */
+  // 资源预留机制，注册资源预留；可以更新和删除
   @Public
   @Unstable
   public abstract ReservationSubmissionResponse submitReservation(
@@ -772,6 +809,7 @@ public abstract class YarnClient extends AbstractService {
    * @throws YarnException
    * @throws IOException
    */
+  // 获取每个节点对应的节点标签，节点标签用于集群中节点分组
   @Public
   @Unstable
   public abstract Map<NodeId, Set<String>> getNodeToLabels()

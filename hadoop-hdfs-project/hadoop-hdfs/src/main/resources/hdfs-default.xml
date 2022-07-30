@@ -413,6 +413,8 @@
   </description>
 </property>
 
+<!--  NameNode持久存储命名空间和事务日志的本地文件系统上的路径。
+如果这是逗号分隔的目录列表，那么名称表将在所有目录中复制，以实现冗余。-->
 <property>
   <name>dfs.namenode.name.dir</name>
   <value>file://${hadoop.tmp.dir}/dfs/name</value>
@@ -608,6 +610,7 @@
   </description>
 </property>
 
+<!--  逗号分隔的DataNode本地文件系统上的路径列表，它应该存储其块。	如果这是逗号分隔的目录列表，则数据将存储在所有命名目录中，通常位于不同设备上。-->
 <property>
   <name>dfs.datanode.data.dir</name>
   <value>file://${hadoop.tmp.dir}/dfs/data</value>
@@ -681,6 +684,7 @@
   </description>
 </property>
 
+<!--  268435456	对于大型文件系统，HDFS块大小为256MB。-->
 <property>
   <name>dfs.blocksize</name>
   <value>134217728</value>
@@ -900,6 +904,7 @@
   </description>
 </property>
 
+<!--  100	更多NameNode服务器线程来处理来自大量DataNode的RPC。-->
 <property>
   <name>dfs.namenode.handler.count</name>
   <value>10</value>
@@ -1050,6 +1055,7 @@
   permitted.</description>
 </property>
 
+<!--  允许/排除的DataNodes列表。	如有必要，请使用这些文件来控制允许的数据节点列表。-->
 <property>
   <name>dfs.hosts.exclude</name>
   <value></value>

@@ -311,6 +311,7 @@
    <value>false</value>
   </property>
 
+<!--  是 / 否	启用ACL？默认为false。-->
   <property>
     <description>Are acls enabled.</description>
     <name>yarn.acl.enable</name>
@@ -323,6 +324,7 @@
     <value>false</value>
   </property>
 
+<!--  管理员ACL	用于在集群上设置管理员的ACL。ACL用于逗号分隔的用户空间命令分隔组。默认为*的特殊值，这意味着任何人。只是空间的特殊价值意味着没有人可以访问。-->
   <property>
     <description>ACL of who can be admin of the YARN cluster.</description>
     <name>yarn.admin.acl</name>
@@ -413,6 +415,7 @@
     <value></value>
   </property>
 
+<!--  允许/排除的NodeManager列表。	如有必要，请使用这些文件来控制允许的NodeManager列表。-->
   <property>
     <description>Path to file with nodes to exclude.</description>
     <name>yarn.resourcemanager.nodes.exclude-path</name>
@@ -1321,7 +1324,9 @@
   </property>
 
 <!--  中间结果存放位置，类似于1.0中的mapred.local.dir。注意，这个参数通常会配置多个目录，
-已分摊磁盘IO负载。默认值：${hadoop.tmp.dir}/nm-local-dir-->
+已分摊磁盘IO负载。默认值：${hadoop.tmp.dir}/nm-local-dir
+以逗号分隔的本地文件系统上写入中间数据的路径列表。	多个路径有助于传播磁盘I / O.
+-->
   <property>
     <description>List of directories to store localized files in. An 
       application's localized file directory will be found in:
@@ -1415,7 +1420,9 @@
     <value>INFO</value>
   </property>
 
-<!--  日志存放地址（可配置多个目录）。默认值：${yarn.log.dir}/userlogs-->
+<!--  日志存放地址（可配置多个目录）。默认值：${yarn.log.dir}/userlogs
+以逗号分隔的本地文件系统上写入日志的路径列表。	多个路径有助于传播磁盘I / O.
+-->
   <property>
     <description>
       Where to store container logs. An application's localized log directory
@@ -1477,8 +1484,9 @@
     Be careful set this too small and you will spam the name node.</description>
     <name>yarn.log-aggregation.retain-seconds</name>
     <value>-1</value>
-  </property> 
-  
+  </property>
+
+<!--  检查聚合日志保留期间的时间。如果设置为0或负值，则该值将计算为聚合日志保留时间的十分之一。小心，将其设置得太小，您将垃圾邮件名称节点。-->
   <property>
     <description>How long to wait between aggregated log retention checks.
     If set to 0 or a negative value then the value is computed as one-tenth
@@ -1528,7 +1536,10 @@
     <value>600000</value>
   </property>
 
-<!--  NodeManager上日志最多存放时间（不启用日志聚集功能时有效）。默认值：10800（3小时）-->
+<!--  NodeManager上日志最多存放时间（不启用日志聚集功能时有效）。默认值：10800（3小时）
+
+	在NodeManager上保留日志文件的默认时间（以秒为单位）仅在禁用日志聚合时适用。
+-->
   <property>
     <description>Time in seconds to retain user logs. Only applicable if
     log aggregation is disabled
@@ -2359,7 +2370,9 @@ YARN也会按照这些内存来使用（傻不傻？），因此，这个值通�
     <value></value>
   </property>
 
-<!--  NodeManager上运行的附属服务。需配置成mapreduce_shuffle，才可运行MapReduce程序。默认值：“”-->
+<!--  NodeManager上运行的附属服务。需配置成mapreduce_shuffle，才可运行MapReduce程序。默认值：“”
+需要为Map Reduce应用程序设置的随机服务。
+-->
   <property>
     <description>A comma separated list of services where service name should only
       contain a-zA-Z0-9_ and can not start with numbers</description>
