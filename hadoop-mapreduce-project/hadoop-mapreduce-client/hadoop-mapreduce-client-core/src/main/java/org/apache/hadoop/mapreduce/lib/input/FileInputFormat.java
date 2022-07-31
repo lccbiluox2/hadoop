@@ -393,6 +393,11 @@ public abstract class FileInputFormat<K, V> extends InputFormat<K, V> {
    * Generate the list of files and make them into FileSplits.
    * @param job the job context
    * @throws IOException
+   *
+   * 最需要注意的点:
+   * - 默认情况下，一个物理数据块，就是一个逻辑切片，-个逻辑切片，就需要启动-一个MapTask来执行计算
+   * - 默认情况下，如果最后物理数据块的大小不足默认数据块大小的10%，则最后两个物理数据，合并成一个逻辑
+   * 切片
    */
   public List<InputSplit> getSplits(JobContext job) throws IOException {
     StopWatch sw = new StopWatch().start();
@@ -428,10 +433,25 @@ public abstract class FileInputFormat<K, V> extends InputFormat<K, V> {
         }
         /**
          * 文件是否支持切割，压缩包就不可以切分，最后只能一个切片，只能启动一个mapTask
+         *
+         * 注释:
+         * 如果配置了文件可切割，则进行逻辑切片，否则单独成为一个切片
+         * 如果你想让一个文件单独启动一个Task ，直接让isSpLitable方法返回false 即可
          */
         if (isSplitable(job, path)) {
           // 获取块大小，这个是实实在在存在磁盘上的大小不可以调控
           // 这里获取的是block大小，默认是128M
+          /**
+           * 7/30/22 3:53 PM 九师兄
+           *  通过计算拿到bLockSize, minSize, maxSize 中的中间值作为切片大小
+           * splitsize = 256M, 那么分片可能是这样的 0-256 256- 512 ,
+           * spLitsize =默认情况下的128M 是不是可以认为一个数据块一个Task?本来是可以的， 但是作者思考的更多，做了优化
+           *  优化:在某些极端的情况下，可以少启动一个MapTask
+           *  本来要启动100001个人任务 ==> 可以启动优化为100000
+           *  看起来是有用的 ，但是有没有用的，你都能启动1玩个任务了 还差1个吗
+           *
+           *  这里提现的主要是 能优化就优化，这样才能整体保证好的性能
+           **/
           long blockSize = file.getBlockSize();
           /**
            * a)获取文件大小fs.size0f(ss. txt)

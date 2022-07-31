@@ -197,6 +197,10 @@ public class RMAppImpl implements RMApp, Recoverable {
 
   private Priority applicationPriority;
 
+  /**
+   * 7/30/22 3:23 PM 九师兄  创建了一个 StateMachineFactory 初始化状态为RMAppState.NEW
+   * 里面构建了一堆状态转移四元组
+   **/
   private static final StateMachineFactory<RMAppImpl,
                                            RMAppState,
                                            RMAppEventType,
@@ -395,6 +399,9 @@ public class RMAppImpl implements RMApp, Recoverable {
 
      .installTopology();
 
+  /**
+   * 7/30/22 3:26 PM 九师兄  可以看到我们需要的成员变量 状态机
+   **/
   private final StateMachine<RMAppState, RMAppEventType, RMAppEvent>
                                                                  stateMachine;
 
@@ -402,6 +409,13 @@ public class RMAppImpl implements RMApp, Recoverable {
   private static final float MINIMUM_AM_BLACKLIST_THRESHOLD_VALUE = 0.0f;
   private static final float MAXIMUM_AM_BLACKLIST_THRESHOLD_VALUE = 1.0f;
 
+  /**
+   * 7/30/22 3:22 PM 九师兄
+   * 这个类是一个状态机
+   *
+   * 1. RMAppImpl 是 EventHandler 的子类, 那么必然有 handle 方法
+   * 2、RMAppImp的内部有一个成员变量: StateMachine
+   **/
   public RMAppImpl(ApplicationId applicationId, RMContext rmContext,
       Configuration config, String name, String user, String queue,
       ApplicationSubmissionContext submissionContext, YarnScheduler scheduler,
@@ -488,6 +502,7 @@ public class RMAppImpl implements RMApp, Recoverable {
     this.readLock = lock.readLock();
     this.writeLock = lock.writeLock();
 
+    // 九师兄 状态机初始化
     this.stateMachine = stateMachineFactory.make(this);
 
     this.callerContext = CallerContext.getCurrent();

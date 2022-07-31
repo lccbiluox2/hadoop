@@ -1668,7 +1668,7 @@ public class MRAppMaster extends CompositeService {
       }
       long appSubmitTime = Long.parseLong(appSubmitTimeStr);
       
-      
+      // 九师兄 启动了 MRAppMaster
       MRAppMaster appMaster =
           new MRAppMaster(applicationAttemptId, containerId, nodeHostString,
               Integer.parseInt(nodePortString),

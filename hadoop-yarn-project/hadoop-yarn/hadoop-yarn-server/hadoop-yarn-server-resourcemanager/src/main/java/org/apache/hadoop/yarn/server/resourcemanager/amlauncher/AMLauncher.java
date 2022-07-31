@@ -126,6 +126,11 @@ public class AMLauncher implements Runnable {
     StartContainersRequest allRequests =
         StartContainersRequest.newInstance(list);
 
+    // 九师兄 大TUD0_T1A 马千午nttpS./ / DLog.Csuml.nett znongq1z51J
+    // 注释: 这是RM发送命令让NM启动Container
+    //  这个请求的request 对象中，是包含了: shell命令!
+    // 当NM接收到这个RPC请求的时候，就会去初始化Contaienr 使用这个Contianer 的资源来启动MRAppmaster 这个JVM
+    // 到此为止，ApplicationMaster 的启动就搞定了。!
     StartContainersResponse response =
         containerMgrProxy.startContainers(allRequests);
     if (response.getFailedRequests() != null
