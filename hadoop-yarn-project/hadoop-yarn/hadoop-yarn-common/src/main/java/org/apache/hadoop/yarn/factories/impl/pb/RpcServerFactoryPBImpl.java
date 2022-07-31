@@ -80,6 +80,7 @@ public class RpcServerFactoryPBImpl implements RpcServerFactory {
     if (constructor == null) {
       Class<?> pbServiceImplClazz = null;
       try {
+        // 12:32 PM  九师兄 获取类名
         pbServiceImplClazz = conf
             .getClassByName(getPbServiceImplClassName(protocol));
       } catch (ClassNotFoundException e) {
@@ -87,6 +88,7 @@ public class RpcServerFactoryPBImpl implements RpcServerFactory {
             + getPbServiceImplClassName(protocol) + "]", e);
       }
       try {
+        // 12:32 PM  九师兄 通过反射构建 ApplicationMasterProtocol 的 RpcServer实例
         constructor = pbServiceImplClazz.getConstructor(protocol);
         constructor.setAccessible(true);
         serviceCache.putIfAbsent(protocol, constructor);

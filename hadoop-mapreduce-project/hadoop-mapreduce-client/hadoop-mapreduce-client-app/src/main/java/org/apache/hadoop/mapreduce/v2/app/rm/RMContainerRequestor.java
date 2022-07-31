@@ -200,10 +200,12 @@ public abstract class RMContainerRequestor extends RMCommunicator {
     ResourceBlacklistRequest blacklistRequest =
         ResourceBlacklistRequest.newInstance(new ArrayList<String>(blacklistAdditions),
             new ArrayList<String>(blacklistRemovals));
+    // 3:53 PM  九师兄 todo: 构建Rpc请求对象 申请Container
     AllocateRequest allocateRequest =
         AllocateRequest.newInstance(lastResponseID,
           super.getApplicationProgress(), new ArrayList<ResourceRequest>(ask),
           new ArrayList<ContainerId>(release), blacklistRequest);
+    // 3:54 PM  九师兄 todo: 执行资源申请 每一秒执行一次
     AllocateResponse allocateResponse = scheduler.allocate(allocateRequest);
     lastResponseID = allocateResponse.getResponseId();
     availableResources = allocateResponse.getAvailableResources();
@@ -237,6 +239,7 @@ public abstract class RMContainerRequestor extends RMCommunicator {
     }
     blacklistAdditions.clear();
     blacklistRemovals.clear();
+    // 5:21 PM  九师兄 返回响应
     return allocateResponse;
   }
 

@@ -131,6 +131,12 @@ public class AMLauncher implements Runnable {
     //  这个请求的request 对象中，是包含了: shell命令!
     // 当NM接收到这个RPC请求的时候，就会去初始化Contaienr 使用这个Contianer 的资源来启动MRAppmaster 这个JVM
     // 到此为止，ApplicationMaster 的启动就搞定了。!
+    /**
+     * 7/31/22 1:19 PM 九师兄
+     *
+     * RM作为RPC客户端， NM作为RPC服务端，之间的通信协议是: ContainerManagementProtocol
+     * 作用: RM发送RPC请求让NM启动Container ，在这个Container 中去启动ApplicationMalaster
+     **/
     StartContainersResponse response =
         containerMgrProxy.startContainers(allRequests);
     if (response.getFailedRequests() != null
@@ -340,9 +346,11 @@ public class AMLauncher implements Runnable {
   @SuppressWarnings("unchecked")
   public void run() {
     switch (eventType) {
+      // 1:16 PM  九师兄 启动事件
     case LAUNCH:
       try {
         LOG.info("Launching master" + application.getAppAttemptId());
+        // 1:17 PM  九师兄 todo: 调用launch方法
         launch();
         handler.handle(new RMAppAttemptEvent(application.getAppAttemptId(),
             RMAppAttemptEventType.LAUNCHED, System.currentTimeMillis()));
@@ -350,6 +358,7 @@ public class AMLauncher implements Runnable {
         onAMLaunchFailed(masterContainer.getId(), ie);
       }
       break;
+      // 1:17 PM  九师兄 清空方法
     case CLEANUP:
       try {
         LOG.info("Cleaning master " + application.getAppAttemptId());

@@ -196,10 +196,12 @@ public class RMContainerAllocator extends RMContainerRequestor
 
   public RMContainerAllocator(ClientService clientService, AppContext context,
       AMPreemptionPolicy preemptionPolicy) {
+    // 3:28 PM  九师兄 有重点
     super(clientService, context);
     this.preemptionPolicy = preemptionPolicy;
     this.stopped = new AtomicBoolean(false);
     this.clock = context.getClock();
+    // 4:09 PM  九师兄 todo: 有重点 维护了2个Map
     this.assignedRequests = createAssignedRequests();
   }
 
@@ -246,6 +248,7 @@ public class RMContainerAllocator extends RMContainerRequestor
 
   @Override
   protected void serviceStart() throws Exception {
+    // 3:09 PM  九师兄 创建事件处理线程
     this.eventHandlingThread = new Thread() {
       @SuppressWarnings("unchecked")
       @Override
@@ -255,6 +258,7 @@ public class RMContainerAllocator extends RMContainerRequestor
 
         while (!stopped.get() && !Thread.currentThread().isInterrupted()) {
           try {
+            // 3:10 PM  九师兄 获取事件
             event = RMContainerAllocator.this.eventQueue.take();
           } catch (InterruptedException e) {
             if (!stopped.get()) {
@@ -264,6 +268,7 @@ public class RMContainerAllocator extends RMContainerRequestor
           }
 
           try {
+            // 3:10 PM  九师兄 处理事件
             handleEvent(event);
           } catch (Throwable t) {
             LOG.error("Error in handling event type " + event.getType()
@@ -283,7 +288,10 @@ public class RMContainerAllocator extends RMContainerRequestor
   @Override
   protected synchronized void heartbeat() throws Exception {
     scheduleStats.updateAndLogIfChanged("Before Scheduling: ");
+    // 3:49 PM  九师兄 todo: 资源申请
     List<Container> allocatedContainers = getResources();
+
+    // 3:57 PM  九师兄 todo: 申请到的Container进行分配
     if (allocatedContainers != null && allocatedContainers.size() > 0) {
       scheduledRequests.assign(allocatedContainers);
     }
@@ -374,19 +382,23 @@ public class RMContainerAllocator extends RMContainerRequestor
 
   protected synchronized void handleEvent(ContainerAllocatorEvent event) {
     recalculateReduceSchedule = true;
+    // 3:12 PM  九师兄 如果是Container申请
     if (event.getType() == ContainerAllocator.EventType.CONTAINER_REQ) {
       ContainerRequestEvent reqEvent = (ContainerRequestEvent) event;
       boolean isMap = reqEvent.getAttemptID().getTaskId().getTaskType().
           equals(TaskType.MAP);
+      // 3:12 PM  九师兄 如果是MapTask 那么处理Map Container申请
       if (isMap) {
         handleMapContainerRequest(reqEvent);
       } else {
+        // 3:12 PM  九师兄 如果是Reduce 那么处理Reduce Container申请
         handleReduceContainerRequest(reqEvent);
       }
       
     } else if (
       event.getType() == ContainerAllocator.EventType.CONTAINER_DEALLOCATE) {
-  
+      // 3:13 PM  九师兄 如果是资源归还
+
       LOG.info("Processing the event " + event.toString());
 
       TaskAttemptId aId = event.getAttemptID();
@@ -409,6 +421,9 @@ public class RMContainerAllocator extends RMContainerRequestor
       preemptionPolicy.handleCompletedContainer(event.getAttemptID());
     } else if (
         event.getType() == ContainerAllocator.EventType.CONTAINER_FAILED) {
+
+      // 3:14 PM  九师兄 如果是资源申请失败
+
       ContainerFailedEvent fEv = (ContainerFailedEvent) event;
       String host = getHost(fEv.getContMgrAddress());
       containerFailedOnHost(host);
@@ -457,6 +472,7 @@ public class RMContainerAllocator extends RMContainerRequestor
             PRIORITY_REDUCE, reduceNodeLabelExpression));
       } else {
         //reduces are added to pending queue and are slowly ramped up
+        // 3:23 PM  九师兄 放到准备申请的集合
         pendingReduces.add(new ContainerRequest(reqEvent,
             PRIORITY_REDUCE, reduceNodeLabelExpression));
       }
@@ -503,6 +519,7 @@ public class RMContainerAllocator extends RMContainerRequestor
           mapResourceRequest.getMemorySize());
       reqEvent.getCapability().setVirtualCores(
           mapResourceRequest.getVirtualCores());
+      // 3:14 PM  九师兄 todo: 给map申请request加入到scheduledRequests
       scheduledRequests.addMap(reqEvent); //maps are immediately scheduled
     } else {
       String diagMsg = "The required MAP capability is more than the " +
@@ -790,6 +807,7 @@ public class RMContainerAllocator extends RMContainerRequestor
      * to contact the RM.
      */
     try {
+      // 3:52 PM  九师兄 todo: 发起Rpc请求 向ResourceManager 申请 Container
       response = makeRemoteRequest();
       // Reset retry count if no exception occurred.
       retrystartTime = System.currentTimeMillis();
@@ -834,6 +852,7 @@ public class RMContainerAllocator extends RMContainerRequestor
       throw e;
     }
     Resource newHeadRoom = getAvailableResources();
+    // 3:55 PM  九师兄 todo: 获取申请到的Container列表
     List<Container> newContainers = response.getAllocatedContainers();
     // Setting NMTokens
     if (response.getNMTokens() != null) {
@@ -1162,6 +1181,11 @@ public class RMContainerAllocator extends RMContainerRequestor
     }
     
     // this method will change the list of allocatedContainers.
+    /**
+     * 7/31/22 5:24 PM 九师兄
+     *
+     * 最终是完成container和request的映射
+     **/
     private void assign(List<Container> allocatedContainers) {
       Iterator<Container> it = allocatedContainers.iterator();
       LOG.info("Got allocated containers " + allocatedContainers.size());
@@ -1222,6 +1246,7 @@ public class RMContainerAllocator extends RMContainerRequestor
         
         // do not assign if allocated container is on a  
         // blacklisted host
+        // 4:00 PM  九师兄 黑白名单过滤
         String allocatedHost = allocated.getNodeId().getHost();
         if (isNodeBlacklisted(allocatedHost)) {
           // we need to request for a new container 
@@ -1240,6 +1265,11 @@ public class RMContainerAllocator extends RMContainerRequestor
             ContainerRequest newReq = 
                 getFilteredContainerRequest(toBeReplacedReq);
             decContainerReq(toBeReplacedReq);
+            /**
+             * 7/31/22 5:25 PM 九师兄
+             * 这里就是做关系映射，之前初始化的时候，创建一个数据结构:
+             * AssignRequests对象，内部维护了两个map 如果完成匹配了，就登记在册!
+             **/
             if (toBeReplacedReq.attemptID.getTaskId().getTaskType() ==
                 TaskType.MAP) {
               maps.put(newReq.attemptID, newReq);
@@ -1497,9 +1527,11 @@ public class RMContainerAllocator extends RMContainerRequestor
   class AssignedRequests {
     private final Map<ContainerId, TaskAttemptId> containerToAttemptMap =
       new HashMap<ContainerId, TaskAttemptId>();
+    // todo: map task的map
     @VisibleForTesting
     final LinkedHashMap<TaskAttemptId, Container> maps =
       new LinkedHashMap<TaskAttemptId, Container>();
+    // todo: reduces task的map
     @VisibleForTesting
     final LinkedHashMap<TaskAttemptId, Container> reduces =
       new LinkedHashMap<TaskAttemptId, Container>();

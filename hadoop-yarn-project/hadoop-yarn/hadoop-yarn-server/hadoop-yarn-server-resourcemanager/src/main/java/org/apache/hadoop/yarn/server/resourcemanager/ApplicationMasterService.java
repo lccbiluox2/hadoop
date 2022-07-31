@@ -111,6 +111,8 @@ public class ApplicationMasterService extends AbstractService implements
     this.amLivelinessMonitor = rmContext.getAMLivelinessMonitor();
     this.rScheduler = scheduler;
     this.rmContext = rmContext;
+    // 12:25 PM  九师兄 ApplicationMasterService process chain处理链
+    // 12:27 PM  九师兄 这里是头部Head
     this.amsProcessingChain = new AMSProcessingChain(new DefaultAMSProcessor());
   }
 
@@ -121,6 +123,11 @@ public class ApplicationMasterService extends AbstractService implements
         YarnConfiguration.RM_SCHEDULER_ADDRESS,
         YarnConfiguration.DEFAULT_RM_SCHEDULER_ADDRESS,
         YarnConfiguration.DEFAULT_RM_SCHEDULER_PORT);
+    /**
+     * 7/31/22 12:27 PM 九师兄
+     *  ApplicationMasterService process chain处理链
+     *  初始化
+     **/
     initializeProcessingChain(conf);
   }
 
@@ -150,9 +157,11 @@ public class ApplicationMasterService extends AbstractService implements
   }
 
   private void initializeProcessingChain(Configuration conf) {
+    // 12:28 PM  九师兄 调用初始化
     amsProcessingChain.init(rmContext, null);
     addPlacementConstraintHandler(conf);
 
+    // 12:28 PM  九师兄 获取 ApplicationMasterServiceProcessor列表
     List<ApplicationMasterServiceProcessor> processors = getProcessorList(conf);
     if (processors != null) {
       Collections.reverse(processors);
@@ -167,6 +176,7 @@ public class ApplicationMasterService extends AbstractService implements
               + ", this processor will be ignored.");
           continue;
         }
+        // 12:28 PM  九师兄 添加到处理链中
         this.amsProcessingChain.addProcessor(p);
       }
     }
@@ -190,6 +200,10 @@ public class ApplicationMasterService extends AbstractService implements
     serverConf.set(
         CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHENTICATION,
         SaslRpcServer.AuthMethod.TOKEN.toString());
+    /**
+     * 7/31/22 12:29 PM 九师兄
+     * 构建 Rpc Server 服务端 来给 ApplicationMaster 提供服务
+     **/
     this.server = getServer(rpc, serverConf, masterServiceAddress,
         this.rmContext.getAMRMTokenSecretManager());
     // TODO more exceptions could be added later.
@@ -210,6 +224,7 @@ public class ApplicationMasterService extends AbstractService implements
       refreshServiceAcls(conf, RMPolicyProvider.getInstance());
     }
 
+    // 12:34 PM  九师兄 todo: 调用启动方法启动
     this.server.start();
     this.masterServiceAddress =
         conf.updateConnectAddr(YarnConfiguration.RM_BIND_HOST,
@@ -224,6 +239,11 @@ public class ApplicationMasterService extends AbstractService implements
 
   protected Server getServer(YarnRPC rpc, Configuration serverConf,
       InetSocketAddress addr, AMRMTokenSecretManager secretManager) {
+    /**
+     * 7/31/22 12:30 PM 九师兄
+     *
+     * 构建 Rpc Server 服务端 来给 ApplicationMaster 提供服务
+     **/
     return rpc.getServer(ApplicationMasterProtocol.class, this, addr,
         serverConf, secretManager,
         serverConf.getInt(YarnConfiguration.RM_SCHEDULER_CLIENT_THREAD_COUNT,
@@ -280,6 +300,10 @@ public class ApplicationMasterService extends AbstractService implements
         }
       }
 
+      /**
+       * 7/31/22 4:51 PM 九师兄
+       * todo: 注释: AM过来向RM注册，需要把AM管理起来: 注册AM到MALLM这个组件内部的一个map中
+       **/
       this.amLivelinessMonitor.receivedPing(applicationAttemptId);
 
       // Setting the response id to 0 to identify if the
@@ -290,6 +314,7 @@ public class ApplicationMasterService extends AbstractService implements
       RegisterApplicationMasterResponse response =
           recordFactory.newRecordInstance(
               RegisterApplicationMasterResponse.class);
+      // 3:43 PM  九师兄 todo: 重点
       this.amsProcessingChain.registerApplicationMaster(
           amrmTokenIdentifier.getApplicationAttemptId(), request, response);
       return response;

@@ -250,6 +250,11 @@ public class DefaultContainerExecutor extends ContainerExecutor {
     // copy container tokens to work dir
     Path tokenDst =
       new Path(containerWorkDir, ContainerLaunch.FINAL_CONTAINER_TOKENS_FILE);
+   /**
+    * 7/31/22 8:40 PM 九师兄
+    * 后面有很多copyFile因为提交任务，开始我们把jar包，配置文件等都上传到hdfs了
+    * 现在我们要下载下来
+    **/
     copyFile(nmPrivateTokensPath, tokenDst, user);
 
     if (nmPrivateKeystorePath != null) {
@@ -300,12 +305,16 @@ public class DefaultContainerExecutor extends ContainerExecutor {
       setScriptExecutable(launchDst, user);
       setScriptExecutable(sb.getWrapperScriptPath(), user);
 
+      /**
+       * 7/31/22 8:42 PM 九师兄  todo： 构建启动命令
+       **/
       shExec = buildCommandExecutor(sb.getWrapperScriptPath().toString(),
           containerIdStr, user, pidFile, container.getResource(),
           new File(containerWorkDir.toUri().getPath()),
           container.getLaunchContext().getEnvironment());
       
       if (isContainerActive(containerId)) {
+        // 8:42 PM  九师兄 todo: 执行命令
         shExec.execute();
       } else {
         LOG.info("Container {} was marked as inactive. "
@@ -378,11 +387,13 @@ public class DefaultContainerExecutor extends ContainerExecutor {
   protected CommandExecutor buildCommandExecutor(String wrapperScriptPath, 
       String containerIdStr, String user, Path pidFile, Resource resource,
       File workDir, Map<String, String> environment) {
-    
+
+    // 8:43 PM  九师兄 todo:拿到命令数组 还没拼接
     String[] command = getRunCommand(wrapperScriptPath,
         containerIdStr, user, pidFile, this.getConf(), resource);
 
     LOG.info("launchContainer: {}", Arrays.toString(command));
+    // 8:43 PM  九师兄 todo: 构建执行命令ShellCommandExecutor
     return new ShellCommandExecutor(
         command,
         workDir,

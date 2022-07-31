@@ -898,11 +898,13 @@ public abstract class Shell {
     if (Shell.MAC) {
       System.setProperty("jdk.lang.Process.launchMechanism", "POSIX_SPAWN");
     }
+    // 8:46 PM  九师兄 todo: 调用runCommand运行
     runCommand();
   }
 
   /** Run the command. */
   private void runCommand() throws IOException {
+    // 8:47 PM  九师兄 todo: 创建了一个执行器
     ProcessBuilder builder = new ProcessBuilder(getExecString());
     Timer timeOutTimer = null;
     ShellTimeoutTimerTask timeoutTimerTask = null;
@@ -935,6 +937,7 @@ public abstract class Shell {
         process = builder.start();
       }
     } else {
+      // 8:47 PM  九师兄 todo: 执行启动
       process = builder.start();
     }
 
@@ -1210,6 +1213,7 @@ public abstract class Shell {
               + StringUtils.join(" ", command));
         }
       }
+      // 8:45 PM  九师兄 todo: 真正执行命令
       this.run();
     }
 

@@ -213,13 +213,17 @@ public class ContainerLaunch implements Callable<Integer> {
 
   @Override
   public Integer call() {
+    // 7:22 PM  九师兄 todo: 校验container状态
     if (!validateContainerState()) {
       return 0;
     }
 
+    // 7:22 PM  九师兄 todo: 获取上下文对象
     final ContainerLaunchContext launchContext = container.getLaunchContext();
     ContainerId containerID = container.getContainerId();
     String containerIdStr = containerID.toString();
+    // 7:23 PM  九师兄 todo: 获取启动contaier的命令
+    // 8:32 PM  九师兄   java -Dxx=xx xxx.jar xxx
     final List<String> command = launchContext.getCommands();
     int ret = -1;
 
@@ -234,6 +238,7 @@ public class ContainerLaunch implements Callable<Integer> {
       String appIdStr = app.getAppId().toString();
       String relativeContainerLogDir = ContainerLaunch
           .getRelativeContainerLogDir(appIdStr, containerIdStr);
+      // 7:23 PM  九师兄 todo: container 日志目录
       containerLogDir =
           dirsHandler.getLogPathForWrite(relativeContainerLogDir, false);
       recordContainerLogDir(containerID, containerLogDir.toString());
@@ -246,6 +251,9 @@ public class ContainerLaunch implements Callable<Integer> {
       // The actual expansion of environment variables happens after calling
       // sanitizeEnv.  This allows variables specified in NM_ADMIN_USER_ENV
       // to reference user or container-defined variables.
+      //
+      // 环境变量的实际扩展发生在调用sanitizeEnv之后。这允许在NM_ADMIN_USER_ENV
+      // 中指定的变量引用用户或容器定义的变量。
       Map<String, String> environment = launchContext.getEnvironment();
       // /////////////////////////// End of variable expansion
 
@@ -343,6 +351,7 @@ public class ContainerLaunch implements Callable<Integer> {
             containerLogDirs, localResources, nmPrivateClasspathJarDir,
             nmEnvVars);
 
+        // 7:24 PM  九师兄 todo: 暴露环境变量
         expandAllEnvironmentVars(environment, containerLogDir);
 
         // Add these if needed after expanding so we don't expand key values.
@@ -353,6 +362,7 @@ public class ContainerLaunch implements Callable<Integer> {
           addTruststoreVars(environment, containerWorkDir);
         }
 
+        // 7:24 PM  九师兄
         prepareContainer(localResources, containerLocalDirs);
 
         // Write out the environment
@@ -370,6 +380,7 @@ public class ContainerLaunch implements Callable<Integer> {
       }
       // /////////// End of writing out container-tokens
 
+      // 7:25 PM  九师兄 todo: 最终启动container
       ret = launchContainer(new ContainerStartContext.Builder()
           .setContainer(container)
           .setLocalizedResources(localResources)
@@ -578,10 +589,12 @@ public class ContainerLaunch implements Callable<Integer> {
 
   protected int launchContainer(ContainerStartContext ctx)
       throws IOException, ConfigurationException {
+    // 7:25 PM  九师兄 todo: 准备启动cintainer
     int launchPrep = prepareForLaunch(ctx);
     if (launchPrep == 0) {
       launchLock.lock();
       try {
+        // 7:26 PM  九师兄 todo: 执行启动container命令
         return exec.launchContainer(ctx);
       } finally {
         launchLock.unlock();
@@ -644,6 +657,7 @@ public class ContainerLaunch implements Callable<Integer> {
           + "cleanup already called");
       return ExitCode.TERMINATED.getExitCode();
     } else {
+      // 7:26 PM  九师兄 todo: 标志container启动状态
       exec.activateContainer(containerId, pidFilePath);
     }
     return ExitCode.SUCCESS.getExitCode();

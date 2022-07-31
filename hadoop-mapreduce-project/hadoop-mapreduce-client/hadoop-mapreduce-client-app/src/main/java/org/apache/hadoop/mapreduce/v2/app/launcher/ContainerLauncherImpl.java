@@ -73,10 +73,15 @@ public class ContainerLauncherImpl extends AbstractService implements
   private ConcurrentHashMap<ContainerId, Container> containers = 
     new ConcurrentHashMap<ContainerId, Container>(); 
   private final AppContext context;
+  // 5:55 PM  九师兄  todo: 工作线程
   protected ThreadPoolExecutor launcherPool;
   protected int initialPoolSize;
   private int limitOnPoolSize;
+  // 5:55 PM  九师兄 todo: 消费线程
   private Thread eventHandlingThread;
+  /**
+   * 7/31/22 5:54 PM 九师兄  todo:事件队列
+   **/
   protected BlockingQueue<ContainerLauncherEvent> eventQueue =
       new LinkedBlockingQueue<ContainerLauncherEvent>();
   private final AtomicBoolean stopped;
@@ -142,7 +147,7 @@ public class ContainerLauncherImpl extends AbstractService implements
       
       ContainerManagementProtocolProxyData proxy = null;
       try {
-
+        // 6:03 PM  九师兄 todo: 获取NodeManager代理
         proxy = getCMProxy(containerMgrAddress, containerID);
 
         // Construct the actual Container
@@ -156,6 +161,10 @@ public class ContainerLauncherImpl extends AbstractService implements
         List<StartContainerRequest> list = new ArrayList<StartContainerRequest>();
         list.add(startRequest);
         StartContainersRequest requestList = StartContainersRequest.newInstance(list);
+        /**
+         * 7/31/22 6:04 PM 九师兄
+         * todo: 发送Rpc请求给 NodeManager,然后启动container
+         **/
         StartContainersResponse response =
             proxy.getContainerManagementProtocol().startContainers(requestList);
         if (response.getFailedRequests() != null
@@ -266,12 +275,18 @@ public class ContainerLauncherImpl extends AbstractService implements
         MRJobConfig.DEFAULT_MR_AM_CONTAINERLAUNCHER_THREAD_COUNT_LIMIT);
     LOG.info("Upper limit on the thread pool size is " + this.limitOnPoolSize);
 
+    // 5:46 PM  九师兄 线程池大小
     this.initialPoolSize = conf.getInt(
         MRJobConfig.MR_AM_CONTAINERLAUNCHER_THREADPOOL_INITIAL_SIZE,
         MRJobConfig.DEFAULT_MR_AM_CONTAINERLAUNCHER_THREADPOOL_INITIAL_SIZE);
     LOG.info("The thread pool initial size is " + this.initialPoolSize);
 
     super.serviceInit(conf);
+    /**
+     * 7/31/22 5:46 PM 九师兄
+     * 注释: ContainerManagementProtocoL是MRAppMaster 和 NodeManager 之间的通信协议
+     * 获取协议代理
+     **/
     cmProxy = new ContainerManagementProtocolProxy(conf);
   }
 
@@ -281,10 +296,14 @@ public class ContainerLauncherImpl extends AbstractService implements
         "ContainerLauncher #%d").setDaemon(true).build();
 
     // Start with a default core-pool size of 10 and change it dynamically.
+    // 5:48 PM  九师兄 线程池
     launcherPool = new HadoopThreadPoolExecutor(initialPoolSize,
         Integer.MAX_VALUE, 1, TimeUnit.HOURS,
         new LinkedBlockingQueue<Runnable>(),
         tf);
+    /**
+     * 7/31/22 5:49 PM 九师兄 todo:  消费线程
+     **/
     eventHandlingThread = new Thread() {
       @Override
       public void run() {
@@ -293,6 +312,7 @@ public class ContainerLauncherImpl extends AbstractService implements
 
         while (!stopped.get() && !Thread.currentThread().isInterrupted()) {
           try {
+            // 5:49 PM  九师兄 todo: 获取到一个事件
             event = eventQueue.take();
           } catch (InterruptedException e) {
             if (!stopped.get()) {
@@ -327,6 +347,7 @@ public class ContainerLauncherImpl extends AbstractService implements
 
           // the events from the queue are handled in parallel
           // using a thread pool
+          // 5:49 PM  九师兄 todo: 包装事件 然后执行事件
           launcherPool.execute(createEventProcessor(event));
 
           // TODO: Group launching of multiple containers to a single
@@ -370,6 +391,10 @@ public class ContainerLauncherImpl extends AbstractService implements
   /**
    * Setup and start the container on remote nodemanager.
    */
+  /**
+   * 7/31/22 5:55 PM 九师兄
+   * todo: 任务抽象
+   **/
   class EventProcessor implements Runnable {
     private ContainerLauncherEvent event;
 
@@ -386,14 +411,17 @@ public class ContainerLauncherImpl extends AbstractService implements
       ContainerId containerID = event.getContainerID();
 
       Container c = getContainer(event);
+      // 6:01 PM  九师兄 todo: 根据事件类型的不同 做不同的操作
       switch(event.getType()) {
 
+        // 6:02 PM  九师兄 todo: 启动 Container
       case CONTAINER_REMOTE_LAUNCH:
         ContainerRemoteLaunchEvent launchEvent
             = (ContainerRemoteLaunchEvent) event;
         c.launch(launchEvent);
         break;
 
+        // 6:02 PM  九师兄 todo: 关闭Container
       case CONTAINER_REMOTE_CLEANUP:
         c.kill(event.getDumpContainerThreads());
         break;

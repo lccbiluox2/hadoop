@@ -1016,11 +1016,15 @@ public class ContainerImpl implements Container {
   @SuppressWarnings("unchecked") // dispatcher not typed
   @Override
   public void sendLaunchEvent() {
+    // 7:03 PM  九师兄 todo: 如果container开始是暂停状态 那么发送恢复事件 ContainerResumeEvent
     if (ContainerState.PAUSED == getContainerState()) {
       dispatcher.getEventHandler().handle(
           new ContainerResumeEvent(containerId,
               "Container Resumed as some resources freed up"));
     } else {
+      // 7:03 PM  九师兄 todo: 如果container开始不是暂停状态
+
+      // 构建一个拉起的事件 事件类型 ContainersLauncherEventType.LAUNCH_CONTAINER
       ContainersLauncherEventType launcherEvent =
           ContainersLauncherEventType.LAUNCH_CONTAINER;
       if (recoveredStatus == RecoveredContainerStatus.LAUNCHED) {
@@ -1031,6 +1035,8 @@ public class ContainerImpl implements Container {
       }
 
       containerLaunchStartTime = clock.getTime();
+      // todo:发送ContainersLauncherEvent事件
+      //  最终是 ContainersLauncher.handle 这个handle方法处理
       dispatcher.getEventHandler().handle(
           new ContainersLauncherEvent(this, launcherEvent));
     }

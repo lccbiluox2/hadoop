@@ -84,6 +84,7 @@ class AMSProcessingChain implements ApplicationMasterServiceProcessor {
       ApplicationAttemptId applicationAttemptId,
       RegisterApplicationMasterRequest request,
       RegisterApplicationMasterResponse resp) throws IOException, YarnException {
+    // 3:43 PM  九师兄  todo: 重点
     this.head.registerApplicationMaster(applicationAttemptId, request, resp);
   }
 

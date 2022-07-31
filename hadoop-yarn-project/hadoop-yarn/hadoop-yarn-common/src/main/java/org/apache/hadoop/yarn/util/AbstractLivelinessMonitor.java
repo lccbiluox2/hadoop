@@ -77,6 +77,7 @@ public abstract class AbstractLivelinessMonitor<O> extends AbstractService {
     this(name, new MonotonicClock());
   }
 
+
   @Override
   protected void serviceStart() throws Exception {
     assert !stopped : "starting when already stopped";
@@ -116,6 +117,10 @@ public abstract class AbstractLivelinessMonitor<O> extends AbstractService {
   public synchronized void receivedPing(O ob) {
     //only put for the registered objects
     if (running.containsKey(ob)) {
+      // 11:03 AM  九师兄 todo: 更新时间
+      // 往map中重新put了 一个key value
+      // key就是NodeManager id
+      // value当前时间
       running.put(ob, clock.getTime());
     }
   }

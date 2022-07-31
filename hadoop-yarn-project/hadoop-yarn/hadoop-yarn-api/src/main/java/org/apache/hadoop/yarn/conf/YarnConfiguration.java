@@ -4529,6 +4529,8 @@ public class YarnConfiguration extends Configuration {
 
   /**
    * Containers launcher implementation to use.
+   *
+   * yarn.nodemanager.containers-launcher.class
    */
   public static final String NM_CONTAINERS_LAUNCHER_CLASS =
       NM_PREFIX + "containers-launcher.class";

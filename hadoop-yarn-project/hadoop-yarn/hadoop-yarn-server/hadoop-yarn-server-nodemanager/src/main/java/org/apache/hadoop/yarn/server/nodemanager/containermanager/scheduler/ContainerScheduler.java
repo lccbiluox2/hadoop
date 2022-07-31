@@ -163,15 +163,19 @@ public class ContainerScheduler extends AbstractService implements
   /**
    * Handle ContainerSchedulerEvents.
    * @param event ContainerSchedulerEvent.
+   *
+   * todo: 这个方法是在 ContainerManagerImpl#createContainerScheduler
+   *  这里调用的
    */
   @Override
   public void handle(ContainerSchedulerEvent event) {
     switch (event.getType()) {
     case SCHEDULE_CONTAINER:
+      // 6:59 PM  九师兄 todo: 开始调度 Containers
       scheduleContainer(event.getContainer());
       break;
     // NOTE: Is sent only after container state has changed to PAUSED...
-    case CONTAINER_PAUSED:
+      case CONTAINER_PAUSED: // 7:40 PM  九师兄 todo:处理暂停
     // NOTE: Is sent only after container state has changed to DONE...
     case CONTAINER_COMPLETED:
       onResourcesReclaimed(event.getContainer());
@@ -385,10 +389,13 @@ public class ContainerScheduler extends AbstractService implements
    */
   private void startPendingContainers(boolean forceStartGuaranteedContaieners) {
     // Start guaranteed containers that are paused, if resources available.
+    // 如果资源可用，启动保证暂停的容器。
     boolean resourcesAvailable = startContainers(
           queuedGuaranteedContainers.values(), forceStartGuaranteedContaieners);
     // Start opportunistic containers, if resources available.
+    // 如果资源可用，启动机会容器。
     if (resourcesAvailable) {
+      // todo：重点
       startContainers(queuedOpportunisticContainers.values(), false);
     }
   }
@@ -399,6 +406,7 @@ public class ContainerScheduler extends AbstractService implements
     boolean resourcesAvailable = true;
     while (cIter.hasNext() && resourcesAvailable) {
       Container container = cIter.next();
+      // 7:02 PM  九师兄 todo: 尝试启动container
       if (tryStartContainer(container, force)) {
         cIter.remove();
       } else {
@@ -411,8 +419,10 @@ public class ContainerScheduler extends AbstractService implements
   private boolean tryStartContainer(Container container, boolean force) {
     boolean containerStarted = false;
     // call startContainer without checking available resource when force==true
+    // 当force==true时，调用startContainer而不检查可用资源
     if (force || resourceAvailableToStartContainer(
         container)) {
+      // 7:02 PM  九师兄 todo: 启动Container
       startContainer(container);
       containerStarted = true;
     }
@@ -478,6 +488,10 @@ public class ContainerScheduler extends AbstractService implements
     // opportunistic containers based on remaining resources available. If the
     // container still stays in the queue afterwards, we need to preempt just
     // enough number of opportunistic containers.
+    //
+    // 给定一个有保证的容器，我们首先对其进行排队，然后尝试启动尽可能多的有保证的容器，
+    // 然后根据剩余可用资源对机会容器进行排队。如果容器之后仍然停留在队列中，我们需要
+    // 抢占足够数量的机会容器。
     if (isGuaranteedContainer) {
       enqueueContainer(container);
 
@@ -498,6 +512,11 @@ public class ContainerScheduler extends AbstractService implements
       // containers based on remaining resource available, then enqueue the
       // opportunistic container. If the container is enqueued, we do another
       // pass to try to start the newly enqueued opportunistic container.
+      //
+      // 给定一个机会容器，我们首先尝试启动尽可能多的排队保证容器，然后根据剩余可用资源
+      // 对机会容器排队，然后对机会容器排队。如果容器已加入队列，则执行另一个传递以尝试
+      // 启动新加入的机会容器。
+      // todo: 重点
       startPendingContainers(false);
       boolean containerQueued = enqueueContainer(container);
       // container may not get queued because the max opportunistic container
@@ -540,6 +559,7 @@ public class ContainerScheduler extends AbstractService implements
   private void startContainer(Container container) {
     LOG.info("Starting container [" + container.getContainerId()+ "]");
     // Skip to put into runningContainers and addUtilization when recover
+    // 当恢复时，跳过放入runningContainers和addUtilization
     if (!runningContainers.containsKey(container.getContainerId())) {
       runningContainers.put(container.getContainerId(), container);
       this.utilizationTracker.addContainerResources(container);
@@ -548,6 +568,7 @@ public class ContainerScheduler extends AbstractService implements
         ExecutionType.OPPORTUNISTIC) {
       this.metrics.startOpportunisticContainer(container.getResource());
     }
+    // 7:03 PM  九师兄 todo: 发送拉起Container事件
     container.sendLaunchEvent();
   }
 

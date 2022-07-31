@@ -1629,6 +1629,7 @@ public class ResourceManager extends CompositeService
   }
 
   protected ApplicationMasterService createApplicationMasterService() {
+    // 12:22 PM  九师兄 获取配置
     Configuration config = this.rmContext.getYarnConfiguration();
     if (isOpportunisticSchedulingEnabled(conf)) {
       if (YarnConfiguration.isDistSchedulingEnabled(config) &&
@@ -1646,6 +1647,7 @@ public class ResourceManager extends CompositeService
           oppContainerAllocatingAMService.getNodeManagerQueueLimitCalculator());
       return oppContainerAllocatingAMService;
     }
+    // 12:23 PM  九师兄 创建 ApplicationMasterService
     return new ApplicationMasterService(this.rmContext, scheduler);
   }
 

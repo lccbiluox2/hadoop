@@ -253,6 +253,7 @@ public class NodeManager extends CompositeService
       ContainerExecutor exec, DeletionService del,
       NodeStatusUpdater nodeStatusUpdater, ApplicationACLsManager aclsManager,
       LocalDirsHandlerService dirsHandler) {
+    // 6:58 PM  九师兄 创建 ContainerManagerImpl
     return new ContainerManagerImpl(context, exec, del, nodeStatusUpdater,
         metrics, dirsHandler);
   }

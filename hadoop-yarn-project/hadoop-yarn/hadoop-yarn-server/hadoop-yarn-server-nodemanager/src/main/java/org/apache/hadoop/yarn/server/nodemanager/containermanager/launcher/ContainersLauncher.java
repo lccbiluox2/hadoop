@@ -125,13 +125,18 @@ public class ContainersLauncher extends AbstractService
     ContainerId containerId = container.getContainerId();
     switch (event.getType()) {
       case LAUNCH_CONTAINER:
+        // 7:31 PM  九师兄 哪里调用这个呢？请看 ContainerImpl.sendLaunchEvent
+        // 7:20 PM  九师兄 todo: 处理container启动事件
         Application app =
           context.getApplications().get(
               containerId.getApplicationAttemptId().getApplicationId());
 
+        // 7:20 PM  九师兄 todo: 构建一个ContainerLaunch用来启动的，注意这里传入了启动命令context
+        // 7:22 PM  九师兄 这是一个线程
         ContainerLaunch launch =
             new ContainerLaunch(context, getConfig(), dispatcher, exec, app,
               event.getContainer(), dirsHandler, containerManager);
+        // 7:21 PM  九师兄 todo: 线程池提交任务，所以这里我们要看ContainerLaunch的call方法
         containerLauncher.submit(launch);
         running.put(containerId, launch);
         break;

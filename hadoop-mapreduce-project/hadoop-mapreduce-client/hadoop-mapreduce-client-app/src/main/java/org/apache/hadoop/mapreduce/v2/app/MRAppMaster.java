@@ -279,14 +279,21 @@ public class MRAppMaster extends CompositeService {
   @Override
   protected void serviceInit(final Configuration conf) throws Exception {
     // create the job classloader if enabled
+    // 1:51 PM  九师兄 创建job类加载器
     createJobClassLoader(conf);
 
+    // 1:51 PM  九师兄 初始化用户信息
     initJobCredentialsAndUGI(conf);
 
+    // 1:51 PM  九师兄 todo: 重要组件
     dispatcher = createDispatcher();
     addIfService(dispatcher);
+
+    // 1:52 PM  九师兄 todo: 重要组件
     taskAttemptFinishingMonitor = createTaskAttemptFinishingMonitor(dispatcher.getEventHandler());
     addIfService(taskAttemptFinishingMonitor);
+
+    // 1:52 PM  九师兄 创建运行上下文
     context = new RunningAppContext(conf, taskAttemptFinishingMonitor);
 
     // Job name is the same as the app name util we support DAG of jobs
@@ -296,6 +303,7 @@ public class MRAppMaster extends CompositeService {
     conf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID, appAttemptID.getAttemptId());
      
     newApiCommitter = false;
+    // 1:52 PM  九师兄 todo: 创建jobId
     jobId = MRBuilderUtils.newJobId(appAttemptID.getApplicationId(),
         appAttemptID.getApplicationId().getId());
     int numReduceTasks = conf.getInt(MRJobConfig.NUM_REDUCES, 0);
@@ -395,6 +403,7 @@ public class MRAppMaster extends CompositeService {
       }
 
       // service to allocate containers from RM (if non-uber) or to fake it (uber)
+      // 1:56 PM  九师兄 todo: 创建 ContainerAllocator
       containerAllocator = createContainerAllocator(null, context);
       addIfService(containerAllocator);
       dispatcher.register(ContainerAllocator.EventType.class, containerAllocator);
@@ -420,7 +429,8 @@ public class MRAppMaster extends CompositeService {
       // service needs to wait some time before it stops so clients can know the
       // final states
       clientService.init(conf);
-      
+
+      // 1:56 PM  九师兄 todo: 创建 ContainerAllocator
       containerAllocator = createContainerAllocator(clientService, context);
       
       //service to handle the output committer
@@ -479,6 +489,7 @@ public class MRAppMaster extends CompositeService {
       dispatcher.register(ContainerAllocator.EventType.class, containerAllocator);
 
       // corresponding service to launch allocated containers via NodeManager
+      // 1:57 PM  九师兄 todo: 创建 ContainerLauncher
       containerLauncher = createContainerLauncher(context);
       addIfService(containerLauncher);
       dispatcher.register(ContainerLauncher.EventType.class, containerLauncher);
@@ -972,10 +983,13 @@ public class MRAppMaster extends CompositeService {
             this.clientService, this.context, nmHost, nmPort, nmHttpPort
             , containerID);
       } else {
+        // 3:03 PM  九师兄 获取RMContainerAllocator实例
         this.containerAllocator = new RMContainerAllocator(
             this.clientService, this.context, preemptionPolicy);
       }
+      // 3:03 PM  九师兄 初始化获取各种参数
       ((Service)this.containerAllocator).init(getConfig());
+      // 3:03 PM  九师兄 启动
       ((Service)this.containerAllocator).start();
       super.serviceStart();
     }
@@ -1032,9 +1046,12 @@ public class MRAppMaster extends CompositeService {
         ((LocalContainerLauncher) this.containerLauncher)
                 .setEncryptedSpillKey(encryptedSpillKey);
       } else {
+        // 5:37 PM  九师兄 创建 ContainerLauncherImpl
         this.containerLauncher = new ContainerLauncherImpl(context);
       }
+      // 5:38 PM  九师兄 初始化
       ((Service)this.containerLauncher).init(getConfig());
+      // 5:38 PM  九师兄 启动
       ((Service)this.containerLauncher).start();
       super.serviceStart();
     }
@@ -1641,15 +1658,19 @@ public class MRAppMaster extends CompositeService {
     try {
       mainStarted = true;
       Thread.setDefaultUncaughtExceptionHandler(new YarnUncaughtExceptionHandler());
+      // 1:47 PM  九师兄 获取containerId
       String containerIdStr =
           System.getenv(Environment.CONTAINER_ID.name());
+      // 1:47 PM  九师兄 获取HostName和端口
       String nodeHostString = System.getenv(Environment.NM_HOST.name());
       String nodePortString = System.getenv(Environment.NM_PORT.name());
       String nodeHttpPortString =
           System.getenv(Environment.NM_HTTP_PORT.name());
+      // 1:47 PM  九师兄 获取提交时间
       String appSubmitTimeStr =
           System.getenv(ApplicationConstants.APP_SUBMIT_TIME_ENV);
-      
+
+      // 1:48 PM  九师兄 验证一些参数
       validateInputParam(containerIdStr,
           Environment.CONTAINER_ID.name());
       validateInputParam(nodeHostString, Environment.NM_HOST.name());
@@ -1673,6 +1694,7 @@ public class MRAppMaster extends CompositeService {
           new MRAppMaster(applicationAttemptId, containerId, nodeHostString,
               Integer.parseInt(nodePortString),
               Integer.parseInt(nodeHttpPortString), appSubmitTime);
+      // 1:48 PM  九师兄 添加钩子
       ShutdownHookManager.get().addShutdownHook(
         new MRAppMasterShutdownHook(appMaster), SHUTDOWN_HOOK_PRIORITY);
       JobConf conf = new JobConf(new YarnConfiguration());
@@ -1685,9 +1707,13 @@ public class MRAppMaster extends CompositeService {
         LOG.info(systemPropsToLog);
       }
 
+      // 1:48 PM  九师兄 设置Job的用户名
       String jobUserName = System
           .getenv(ApplicationConstants.Environment.USER.name());
       conf.set(MRJobConfig.USER_NAME, jobUserName);
+      /**
+       * 7/31/22 1:46 PM 九师兄   todo:初始化和启动AppMaster
+       **/
       initAndStartAppMaster(appMaster, conf, jobUserName);
     } catch (Throwable t) {
       LOG.error("Error starting MRAppMaster", t);
@@ -1732,6 +1758,7 @@ public class MRAppMaster extends CompositeService {
   protected static void initAndStartAppMaster(final MRAppMaster appMaster,
       final JobConf conf, String jobUserName) throws IOException,
       InterruptedException {
+    // 1:49 PM  九师兄 设置配置
     UserGroupInformation.setConfiguration(conf);
     // MAPREDUCE-6565: need to set configuration for SecurityUtil.
     SecurityUtil.setConfiguration(conf);
@@ -1757,7 +1784,9 @@ public class MRAppMaster extends CompositeService {
     appMasterUgi.doAs(new PrivilegedExceptionAction<Object>() {
       @Override
       public Object run() throws Exception {
+        // 1:49 PM  九师兄 todo: 初始化
         appMaster.init(conf);
+        // 1:50 PM  九师兄 todo: 启动
         appMaster.start();
         if(appMaster.errorHappenedShutDown) {
           throw new IOException("Was asked to shut down.");

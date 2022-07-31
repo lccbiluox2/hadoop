@@ -242,6 +242,7 @@ public class ContainerManagerImpl extends CompositeService implements
     this.dirsHandler = dirsHandler;
 
     // ContainerManager level dispatcher.
+    // 7:35 PM  九师兄 todo: 创建 AsyncDispatcher
     dispatcher = new AsyncDispatcher("NM ContainerManager dispatcher");
     this.deletionService = deletionContext;
     this.metrics = metrics;
@@ -251,10 +252,12 @@ public class ContainerManagerImpl extends CompositeService implements
             metrics);
     addService(rsrcLocalizationSrvc);
 
+    // 6:58 PM  九师兄 创建containersLauncher
     containersLauncher = createContainersLauncher(context, exec);
     addService(containersLauncher);
 
     this.nodeStatusUpdater = nodeStatusUpdater;
+    // 6:58 PM  九师兄 todo: 创建ContainerScheduler
     this.containerScheduler = createContainerScheduler(context);
     addService(containerScheduler);
 
@@ -281,6 +284,7 @@ public class ContainerManagerImpl extends CompositeService implements
     this.containersMonitor = createContainersMonitor(exec);
     addService(this.containersMonitor);
 
+    // 7:36 PM  九师兄 todo: 注册要处理的事件类型
     dispatcher.register(ContainerEventType.class,
         new ContainerEventDispatcher());
     dispatcher.register(ApplicationEventType.class,
@@ -290,6 +294,7 @@ public class ContainerManagerImpl extends CompositeService implements
             nmMetricsPublisher));
     dispatcher.register(AuxServicesEventType.class, auxiliaryServices);
     dispatcher.register(ContainersMonitorEventType.class, containersMonitor);
+    // 7:37 PM  九师兄 todo: container启动事件
     dispatcher.register(ContainersLauncherEventType.class, containersLauncher);
     dispatcher.register(ContainerSchedulerEventType.class, containerScheduler);
 
@@ -351,6 +356,9 @@ public class ContainerManagerImpl extends CompositeService implements
     // Currently, this dispatcher is shared by the ContainerManager,
     // all the containers, the container monitor and all the container.
     // The ContainerScheduler may use its own dispatcher.
+    //
+    // 目前，这个调度程序由ContainerManager、所有容器、容器监视器和所有容器共享。
+    // ContainerScheduler可以使用自己的调度程序。
     return new ContainerScheduler(cntxt, dispatcher, metrics);
   }
 
@@ -572,14 +580,18 @@ public class ContainerManagerImpl extends CompositeService implements
 
   protected AbstractContainersLauncher createContainersLauncher(
       Context ctxt, ContainerExecutor exec) {
+    // 8:18 PM  九师兄 获取 yarn.nodemanager.containers-launcher.class
+    // 8:18 PM  九师兄 对应的AbstractContainersLauncher
     Class<? extends AbstractContainersLauncher> containersLauncherClass =
         ctxt.getConf()
             .getClass(YarnConfiguration.NM_CONTAINERS_LAUNCHER_CLASS,
                 ContainersLauncher.class, AbstractContainersLauncher.class);
     AbstractContainersLauncher launcher;
     try {
+      // 8:19 PM  九师兄 todo: 反射创建 ContainersLauncher
       launcher = ReflectionUtils.newInstance(containersLauncherClass,
           ctxt.getConf());
+      // 8:19 PM  九师兄 todo: 初始化
       launcher.init(ctxt, this.dispatcher, exec, dirsHandler, this);
     } catch (Exception e) {
       throw new RuntimeException(e);
@@ -929,10 +941,19 @@ public class ContainerManagerImpl extends CompositeService implements
 
   /**
    * Start a list of containers on this NodeManager.
+   *
+   * 这个代码是在NM中执行的， 启动MRAppMaster
+   *
+   * 负责启动一个YarnChild
+   *
+   * 唯一的区别，就是具体怎么用不一样:
+   * 1、如果是MRAppMaster; sheLl命令: java MRAppMaster
+   * 2、如果是YarnChild; shell命令: java YarnChild
    */
   @Override
   public StartContainersResponse startContainers(
       StartContainersRequest requests) throws YarnException, IOException {
+    // 1:24 PM  九师兄 用户信息
     UserGroupInformation remoteUgi = getRemoteUgi();
     String remoteUser = remoteUgi.getUserName();
     NMTokenIdentifier nmTokenIdentifier = selectNMTokenIdentifier(remoteUgi);
@@ -945,6 +966,7 @@ public class ContainerManagerImpl extends CompositeService implements
     // container is being started, in particular when the container has not yet
     // been added to the containers map in NMContext.
     synchronized (this.context) {
+      // 1:25 PM  九师兄 遍历启动container请求
       for (StartContainerRequest request : requests
           .getStartContainerRequests()) {
         ContainerId containerId = null;
@@ -966,8 +988,10 @@ public class ContainerManagerImpl extends CompositeService implements
               .equals(ContainerType.APPLICATION_MASTER)) {
             this.getAMRMProxyService().processApplicationStartRequest(request);
           }
+          // 1:25 PM  九师兄 启动之前做一些检测
           performContainerPreStartChecks(nmTokenIdentifier, request,
               containerTokenIdentifier);
+          // 1:25 PM  九师兄 todo: 真正开始启动
           startContainerInternal(containerTokenIdentifier, request,
               remoteUser);
           succeededContainers.add(containerId);
@@ -1109,6 +1133,13 @@ public class ContainerManagerImpl extends CompositeService implements
         YarnServerSecurityUtils.parseCredentials(launchContext);
 
     long containerStartTime = SystemClock.getInstance().getTime();
+    /**
+     * 7/31/22 1:27 PM 九师兄
+     *
+     * 这个是存在于NM中的一个用来管理NM自己身上的一个Container 状态的状态机
+     * 1. NM 管理 Contianer: Container
+     * 2. RM 管理 Container: RMContainer
+     **/
     Container container =
         new ContainerImpl(getConfig(), this.dispatcher,
             launchContext, credentials, metrics, containerTokenIdentifier,
@@ -1133,6 +1164,13 @@ public class ContainerManagerImpl extends CompositeService implements
           FlowContext flowContext =
               getFlowContext(launchContext, applicationID);
 
+          /**
+           * 7/31/22 1:29 PM 九师兄
+           *
+           * 这个 Application 是存在 NodeManager 中用来管理 Application 的状态机, 就是对应 MRAppMaster
+           * 1. NM 管理 Application: Application
+           * 2. RM 管理 Application： RMApp 和 RMAppAttemp 所以在ResourceManager中有2个状态机用来联合管理Application的状态
+           **/
           Application application =
               new ApplicationImpl(dispatcher, user, flowContext,
                   applicationID, credentials, context);
@@ -1145,9 +1183,11 @@ public class ContainerManagerImpl extends CompositeService implements
                 containerTokenIdentifier.getLogAggregationContext();
             Map<ApplicationAccessType, String> appAcls =
                 container.getLaunchContext().getApplicationACLs();
+            // 1:33 PM  九师兄 提交事件
             context.getNMStateStore().storeApplication(applicationID,
                 buildAppProto(applicationID, user, credentials, appAcls,
                     logAggregationContext, flowContext));
+            // 1:33 PM  九师兄 提交事件
             dispatcher.getEventHandler().handle(new ApplicationInitEvent(
                 applicationID, appAcls, logAggregationContext));
           }
@@ -1178,8 +1218,10 @@ public class ContainerManagerImpl extends CompositeService implements
           }
         }
 
+        // 1:33 PM  九师兄 提交事件
         this.context.getNMStateStore().storeContainer(containerId,
             containerTokenIdentifier.getVersion(), containerStartTime, request);
+        // 1:33 PM  九师兄 提交事件
         dispatcher.getEventHandler().handle(
           new ApplicationContainerInitEvent(container));
 
