@@ -71,6 +71,83 @@ import org.slf4j.LoggerFactory;
  * The {@code DefaultContainerExecuter} class offers generic container
  * execution services. Process execution is handled in a platform-independent
  * way via {@link ProcessBuilder}.
+ *
+ *
+ 6.1 资源本地化
+
+
+ 资源本地化指的是准备Containers运行所需的环境，主要是分布式缓存机制完成的工作，功能包括初始化各种服务组件、
+ 创建工作目录、从HDFS下载运行所需的各种资源(比如文本文件、JAR包、可执行文件)等。资源本地化主要是由两部分组成，
+ 分别是应用程序初始化和Container本地化。其中，应用程序初始化的工作是初始化各类必需的服务组件（比如日志记录组件LogHandler、
+ 资源状态追踪组件LocalResouceTrackerImpl)，供后续Container使用，通常由Application的第一个Container完成；
+ Container本地化则是创建工作目录，从HDFS上下载各类文件资源。
+
+ 注：1. YARN资源分为PUBLIC PRIVATE 和 APPLICATION三类。不同级别的资源对不同用户和
+ 应用程序的访问权限不同，这也直接导致资源的本地化方式不同。它们的本地化由ResouceLocalizationSevice
+ 服务完成，但内部由不同的线程负责机载。
+ 2.两种类型的Container: 一种是该Container是ApplicationMaster发送到给节点的第一个Container；
+ 另一种则不是第一个Container.
+
+ 资源本地化过程可概括为：在NodeManager上，同一个应用程序的所有ContainerImpl异步并发向资源
+ 下载服务ResourceLocalizationService发送待下载的资源。而ResourceLocationService
+ 下载完一类资源后，将通知依赖该资源的所有Container。一旦一个Container依赖的资源已经全部
+ 下载完成，则该Container进入运行阶段。
+
+ 6.2  Container启动
+ 由ContainersLauncher服务完成，该服务将进一步调用插拔式组件ContainerExecutor，
+ YARN提供了两种ContainerExecutor,一种是DefaultContainerExecutor
+ 一种是LinuxContainerExecutor.
+ 主要过程可概括为:将待运行的Container所需的环境变量和运行命令写到Shell脚本
+ launch_container.sh中，并将启动该脚本的命令写入default_container_executor.sh中，
+ 然后通过运行该脚步启动Container.
+
+
+ 6.3  资源清理
+ 是资源本地化的逆过程，它负责清理各种资源，它们均由ResouceLocalizatonService服务完成。
+ Container运行完成后(可能成功或者失败),NM需回收它占用的资源，这些资源主要是Container
+ 运行时使用的临时文件，它们的来源主要是ResourceLocalizationService和ContainerExecutor
+ 两个服务/组件，其中，ResourceLocalizationService将数据HDFS文件下载到本地，
+ ContainerExecutor为Container创建私有工作目录，并保存一些临时文件(比如Container
+ 进程pid文件).因此，Container资源清理过程主要是通知这两个组件删除临时目录。
+ 注：由于每个NM上只负责处理一个应用程序的部分任务，因此它无法知道一个应用程序何时完成，
+ 该信息只有控制着全部消息的RM知道，因此当一个应用程序运行结束时，需要由它广播给各个NM，
+ 再进一步由NM清理应用程序占用的所有资源，包括产生的中间数据。
+
+
+ 七 资源隔离
+ 资源隔离是指为不同的应用任务提供可独立使用的计算资源以避免它们之间互相干扰。当前存在
+ 很多种资源隔离技术，比如硬件虚拟化、虚拟机、Cgroups、Linux Container等。YARN对内存
+ 资源和CPU资源的管理采用的不同的资源隔离方案。
+ 对于内存资源，它是一种限制性资源，它的量的大小直接决定的应用程序的死活。YARN采用了进程
+ 监控的方案控制内存资源使用量，一旦发现它超过约定的资源量，就将其杀死。
+ 另一种可选的方案则是基于轻量级资源隔离技术Cgroups,Cgroups是Linux内核提供的弹性资源
+ 隔离机制，可以严格限制内存的使用上限，一旦进程使用资源量超过事先定义的上限值，则可将其
+ 杀死。对于CPU资源，它是一种弹性资源，它的量的大小不会直接影响应用程序的死活，因此采用
+ 了Cgroups。
+
+
+ Cgroups（Control Groups)是Linux 内核提供的一种可以限制、记录、隔离进程组所使用的
+ 物理资源(如CPU、内存、IO等）的机制，最初由Google工程师提出，后来被整合进Linux内核。
+ Cgroups最初的目的是为资源管理提供一个统一的框架，既整合现有的cpuset等子系统，也为
+ 未来新的子系统提供接口，以使得Cgoups适合多种应用场景，从单个进程的资源控制到实现操作
+ 系统层次的虚拟化的应用场景均支持。总结起来，Cgroups提供了已下功能：
+ 1.限制进程组使用的资源量。
+ 2.进程组的优先级控制，比如，可以使用CPU子系统为某个进程组分配特定CPU share.
+ 3.对进程组使用的资源量进行记账  4.进程控制，比如将某个进程组挂起和恢复。
+
+
+ YARN使用了Cgroups子系统中的CPU和Memory子系统，CPU子系统用于控制Cgroups中所有的
+ 进程可以使用的CPU时间片。Memory子系统可用于限定一个进程的内存使用上限，一旦超过该限制，
+ 将认为它为OOM，会将其杀死。
+
+
+ 对于内存资源隔离，YARN采用了与MRv1这种基于线程监控的资源控制方式，这样做到的主要
+ 出发点是：这种方式更加灵活，且能够防止内存骤增骤降导致内存不足而死掉。
+ 对于CPU资源隔离，YARN采用了轻量级的Cgroups。
+ 注:默认情况下，NM未启用任何CPU资源隔离机制，如果想要启用该机制，需使用
+ LinuxContainerExecutor,它能够以应用程序提交者的身份创建文件，运行Container
+ 和销毁Container.
+
  */
 public class DefaultContainerExecutor extends ContainerExecutor {
 

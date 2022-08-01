@@ -595,6 +595,18 @@ public class ContainerLaunch implements Callable<Integer> {
       launchLock.lock();
       try {
         // 7:26 PM  九师兄 todo: 执行启动container命令
+        /**
+         * 8/1/22 5:14 PM 九师兄
+         *
+         * 由ContainersLauncher服务完成，该服务将进一步调用插拔式组件ContainerExecutor，
+         * YARN提供了两种ContainerExecutor,
+         *  一种是DefaultContainerExecutor
+         *  一种是LinuxContainerExecutor.
+         *
+         * 主要过程可概括为:将待运行的Container所需的环境变量和运行命令写到Shell脚本launch_container.sh中，
+         * 并将启动该脚本的命令写入default_container_executor.sh中，然后通过运行该脚步启动Container.
+         *
+         **/
         return exec.launchContainer(ctx);
       } finally {
         launchLock.unlock();
