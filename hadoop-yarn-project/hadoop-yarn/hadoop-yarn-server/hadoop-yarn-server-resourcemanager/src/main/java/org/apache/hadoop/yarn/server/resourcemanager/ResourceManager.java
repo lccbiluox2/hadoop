@@ -158,6 +158,25 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * The ResourceManager is the main class that is a set of components.
  * "I am the ResourceManager. All your resources belong to us..."
  *
+ *  YARN采用了Maser/Slave结构，其中Master实现为ResourceManager，负责整个集群的资源
+ *  管理与调度; Slave实现为NodeManager,负责单个节点的资源管理与任务启动。
+ *
+ *  ResourceManager是整个YARN集群中最重要的组件之一，它的设计直接决定了系统的可扩展性、
+ *  可用性和容错性等特点，它的功能较多，包括ApplicationMaster管理(启动、停止等)、
+ *  NodeManager管理、Application管理、状态机管理等。
+ *
+ *  在YARN中，ResourceManager负责集群中所有资源的统一管理和分配，它接受来自各个节点
+ *  (NodeManager)的资源汇报信息，并把这些信息按照一定的策略分配给各个应用程序(即
+ *  ApplicationMaster)。
+ *
+ * 注：ResourceManager主要完成一下几个功能:
+ *
+ *  1.与客户端交互，处理来自客户端的请求。
+ *  2.启动和管理ApplicatinMaster,并在它运行失败时重新启动它。
+ *  3.管理NodeManager，接受来自NodeManager的资源管理汇报信息，并向NodeManager下达
+ *    管理命令(比如杀死Contanier)等。
+ *  4.资源管理与调度，接收来自ApplicationMaster的资源申请请求，并为之分配资源（核心）。
+ *
  */
 @SuppressWarnings("unchecked")
 public class ResourceManager extends CompositeService

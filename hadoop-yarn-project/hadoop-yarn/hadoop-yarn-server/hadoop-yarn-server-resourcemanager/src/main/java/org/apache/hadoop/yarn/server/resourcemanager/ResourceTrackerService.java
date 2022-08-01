@@ -94,6 +94,15 @@ import org.apache.hadoop.yarn.util.YarnVersionInfo;
 
 import org.apache.hadoop.thirdparty.com.google.common.annotations.VisibleForTesting;
 
+/**
+ * 8/1/22 6:41 PM 九师兄
+ *
+ * 处理来自NodeManager的请求，主要包括注册和心跳两种请求。注册是NodeManager启动
+ * 时发生的行为，请求包中包含节点的ID、可用资源的上限等信息;心跳是周期性的行为，包含
+ * 各个Container运行状态，运行的Application列表、节点健康状况等信息，作为请求的应答，
+ * ResourceTrackService可为NM返回释放Container列表、Application列表等信息。
+ *
+ **/
 public class ResourceTrackerService extends AbstractService implements
     ResourceTracker {
 

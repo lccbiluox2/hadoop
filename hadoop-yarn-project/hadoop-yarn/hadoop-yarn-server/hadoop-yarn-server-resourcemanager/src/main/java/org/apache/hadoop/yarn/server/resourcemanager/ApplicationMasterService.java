@@ -79,6 +79,21 @@ import org.apache.hadoop.yarn.util.resource.Resources;
 
 import org.apache.hadoop.thirdparty.com.google.common.annotations.VisibleForTesting;
 
+/**
+ * 8/1/22 6:53 PM 九师兄
+ *
+ * 负责处理来自ApplictionMaster的请求，请求主要包括注册、心跳和清理三种。
+ *
+ * 注册是AM 启动时发生的行为，注册请求包中包含AM启动节点，对外的RPC端口号和tracking URL等
+ * 信息。
+ *
+ * 心跳是周期性的行为，汇报信息包括所需资源的描述、待释放的Container列表、黑名单列表，
+ * ApplicationMasterService则为之返回新分配的Container、失败的Container、待抢占的
+ * Container列表等信息。
+ *
+ * 清理是应用程序结束时发生的。ApplicationMaster向RM发送清理应用程序的请求，以回收资源和
+ * 清理各种内存空间。
+ **/
 @SuppressWarnings("unchecked")
 @Private
 public class ApplicationMasterService extends AbstractService implements

@@ -37,6 +37,12 @@ import org.apache.hadoop.yarn.security.AdminACLsManager;
 
 import org.apache.hadoop.thirdparty.com.google.common.annotations.VisibleForTesting;
 
+/**
+ * 8/1/22 6:54 PM 九师兄
+ *
+ * 负责管理应用程序的访问权限，包含两部分权限：查看权限和修改权限。查看权限主要用于查看应用程序
+ * 基本信息，而修改权限则主要用于修改应用程序的优先级、杀死应用程序等。
+ **/
 @InterfaceAudience.Private
 public class ApplicationACLsManager {
 

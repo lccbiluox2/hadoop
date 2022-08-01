@@ -112,6 +112,13 @@ import org.apache.hadoop.yarn.util.resource.Resources;
 
 import org.apache.hadoop.thirdparty.com.google.common.annotations.VisibleForTesting;
 
+/**
+ * 8/1/22 7:20 PM 九师兄
+ *
+ * RMAppImpl收到超时事件后，如果未超过用户设置的运行次数上限，将尝试启动一个新的
+ * RMAppAttemptImp或者直接宣布该应用程序运行失败;ResourceScheduler收到事件后，
+ * 会清理该应用相关信息。
+ **/
 @SuppressWarnings({ "rawtypes", "unchecked" })
 public class RMAppImpl implements RMApp, Recoverable {
 

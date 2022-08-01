@@ -27,6 +27,14 @@ import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.util.AbstractLivelinessMonitor;
 import org.apache.hadoop.yarn.util.Clock;
 
+/**
+ * 8/1/22 6:41 PM 九师兄
+ *
+ *  监控ApplicationMaster是否还活着，如果一个ApplicationMaster在一定时间(10min)
+ *  内未汇报心跳信息，则认为它死掉了，它上面的所有正在运行的Container将被设置为失败状态，
+ *  而ApplicationMaster本身会被重新分配到另一个节点上(默认尝试运行2次）。
+ *
+ **/
 public class AMLivelinessMonitor extends AbstractLivelinessMonitor<ApplicationAttemptId> {
 
   private EventHandler<Event> dispatcher;

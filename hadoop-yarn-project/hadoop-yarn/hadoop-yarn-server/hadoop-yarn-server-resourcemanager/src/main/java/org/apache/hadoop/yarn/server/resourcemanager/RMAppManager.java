@@ -84,7 +84,15 @@ import org.apache.hadoop.thirdparty.com.google.common.util.concurrent.SettableFu
 import org.apache.hadoop.yarn.util.StringHelper;
 
 /**
- * This class manages the list of applications for the resource manager. 
+ * This class manages the list of applications for the resource manager.
+ *
+ * 负责管理应用程序的启动和关闭。ClientRMService收到来自客户端的提交应用程序的请求后，
+ * 将调用函数RMAppManager#submitAppication创建一个RMApp对象，它将维护整个应用程序
+ * 生命周期，从开始运行到最终结束。
+ *
+ *
+ * 注：RM不负责ApplicationMaster内部任务的执行以及容错，只负责资源的分配和状态的跟踪。
+ *
  */
 public class RMAppManager implements EventHandler<RMAppManagerEvent>, 
                                         Recoverable {

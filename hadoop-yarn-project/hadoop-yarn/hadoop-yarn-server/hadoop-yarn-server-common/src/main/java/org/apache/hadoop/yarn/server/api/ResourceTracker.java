@@ -34,7 +34,16 @@ import org.apache.hadoop.yarn.server.api.protocolrecords.UnRegisterNodeManagerRe
  * the ResourceManager.
  */
 public interface ResourceTracker {
-  
+
+  /**
+   * 8/1/22 7:17 PM 九师兄
+   *
+   * NodeManger启动后通过RPC函数ResourceTracker#registerNodeManager向RM注册，之后
+   * 将被加入到NMLivenessMonitor中进行监控。它必须周期性通过RPC函数ResourceTracker#nodeHeartBeat
+   * 向RM汇报心跳以表明自己还活着，如果一段时间内(默认是10min）内为汇报心跳，则RM宣布它已经死亡，
+   * 所以正在运行在它上面的Container将被回收。
+   *
+   **/
   @Idempotent
   RegisterNodeManagerResponse registerNodeManager(
       RegisterNodeManagerRequest request) throws YarnException, IOException;

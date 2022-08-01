@@ -62,6 +62,26 @@ import java.util.Set;
  * @see ApplicationMasterProtocol#allocate(org.apache.hadoop.yarn.api.protocolrecords.AllocateRequest)
  * @see ContainerManagementProtocol#startContainers(org.apache.hadoop.yarn.api.protocolrecords.StartContainersRequest)
  * @see ContainerManagementProtocol#stopContainers(org.apache.hadoop.yarn.api.protocolrecords.StopContainersRequest)
+ *
+ * 当出现以下几种情况时，将导致Container置为KILLED状态。
+ *
+ * a.资源调度器为了保持公平性或者更高优先级的应用程序的服务质量，不得不杀死一些应用占用的
+ *   Container以满足另外一些应用程序的请求。
+ * b.某个NodeManager在一定时间内未向ResourceManager汇报心跳信息，则ResourceManager
+ *   认为它死掉了，会将它上面所在正在运行的Container状态设置为KILLED。
+ * c.用户(使用API 或者 Shell命令)强制杀死一个RMAppAttempImpl实现时，会导致它所用的
+ *   Container状态设置为KILLED。
+ *
+ *  在YARN中，存在两种类型的Container,分别是用于运行ApplicationMaster的Container
+ *  （AM Container)和运行普通任务的Container（简称为 "普通Container")。
+ *   1. 第一种Container超时将导致整个Application运行失败，
+ *   2. 而第二种Container超时则会触发一次资源回收。而要注意的是，第二种Container超时
+ *     导致任务运行失败后，YARN不会主动将其调度到另一个节点上运行，而是将状态告诉应用程序
+ *     的ApplicationMaster，由它决定是否重新申请资源或者重新执行。
+ *
+ *  注:RM只负责资源的分配和回收以及应用程序状态的维护，它不会负责当任务失败的时候进行重启
+ *     Container,即不负责容错处理。
+ *
  */
 @Public
 @Stable

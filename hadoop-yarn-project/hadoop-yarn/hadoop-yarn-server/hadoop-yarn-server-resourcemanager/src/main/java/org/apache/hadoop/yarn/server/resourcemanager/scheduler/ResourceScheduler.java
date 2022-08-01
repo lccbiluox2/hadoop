@@ -33,6 +33,10 @@ import org.apache.hadoop.yarn.server.resourcemanager.recovery.Recoverable;
  * This interface is the one implemented by the schedulers. It mainly extends 
  * {@link YarnScheduler}. 
  *
+ *  ResourceScheduler是资源调度器，它按照一定的约束条件(比如队列容量限制等）将集群中的资源
+ *  分配给各个应用程序，当前主要考虑内存和CPU资源。ResourceScheduler是一个插拔式模块，YARN
+ *  自带了一个批处理资源管理器-FIFO和两个多用户调度器--Fair Scheduler和Capacity Scheduler。
+ *
  */
 @LimitedPrivate("yarn")
 @Evolving
