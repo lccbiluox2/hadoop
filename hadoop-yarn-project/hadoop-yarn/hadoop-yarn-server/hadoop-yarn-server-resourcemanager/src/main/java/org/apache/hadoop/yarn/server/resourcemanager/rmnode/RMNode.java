@@ -40,6 +40,12 @@ import org.apache.hadoop.yarn.server.resourcemanager.RMContext;
  * Node managers information on available resources 
  * and other static information.
  *
+ * RMNode状态机是ResourceManager中用于维护一个节点生命周期的数据结构，
+ * 它的实际是RMNodeImple类，该类维护了一个节点状态机，记录了节点可能存在的各个状态。
+ * 例如，当一个应用程序执行完成时候，会触发一个CLEANUP_APP事件，以清理应用程序占用的资源。
+ * 当一个Container执行完成时候，会触发一个CLEANUP_CONTAINER事件，以清理Container
+ * 占用的资源。
+ *
  */
 public interface RMNode {
 

@@ -61,6 +61,9 @@ import org.apache.hadoop.yarn.exceptions.YarnException;
  * by the <code>ResourceManager</code> and also verifies all interactions such 
  * as stopping the container or obtaining status information for the container.
  * </p>
+ *
+ *  应用程序的ApplicationMaster通过RPC协议向NodeManager发起针对Container的相关操作，
+ *  包括启动Container、杀死Container、获取Container执行状态。
  */
 @Public
 @Stable
@@ -104,6 +107,8 @@ public interface ContainerManagementProtocol {
    *         a allServicesMetaData map.
    * @throws YarnException
    * @throws IOException
+   *
+   * startContainer 有一个参数封装了Container启动所需要的本地资源、环境变量、执行命令、Token等信息。
    */
   @Public
   @Stable
@@ -140,6 +145,9 @@ public interface ContainerManagementProtocol {
    *         requests.
    * @throws YarnException
    * @throws IOException
+   *
+   * 2.stopContainer AM通过该RPC要求NodeManager停止(杀死)一个Container。
+   * 该函数有一个StopContanerRequest类型的参数，用于指定待杀死的Container ID.
    */
   @Public
   @Stable
@@ -176,6 +184,9 @@ public interface ContainerManagementProtocol {
    * 
    * @throws YarnException
    * @throws IOException
+   *
+   * 3.getContainerStatus:ApplicationMaster通过该RPC获取一个Container的运行状态，
+   * 该函数参数类型为GetContaineStatusRequest,封装了目标Container 的ID。
    */
   @Public
   @Stable

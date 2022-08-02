@@ -45,6 +45,22 @@ import org.apache.hadoop.yarn.server.scheduler.SchedulerRequestKey;
  * instance may exist even if there is no actual running container, such as 
  * when resources are being reserved to fill space for a future container 
  * allocation.
+ *
+ *  负责维护应用程序的整个运行周期，包括维护同一个Application启动的所有运行实例的生命周期
+ *  (RMApp)、维护一次运行尝试的整个生命周期(RMAppAttempt)、维护一个Contaner的运行周期
+ *  (RMContainer)、维护一个NodeManager的生命周期(RMNode)。
+ *
+ * RMContainer维护了一个Container的运行周期，包括从创建到运行的整个过程。RM将资源封装成
+ * Container发送给应用程序的ApplicationMaster，而ApplicationMaster则会在Container
+ * 描述的环境中启动任务，因此，从这个层面上讲，Container和任务的生命周期是一致的(目前YARN
+ * 不支持Container的重用,一个Container用完后会立刻释放，将来可能会增加Container的重用机制)。
+ *
+ * 在YARN中，根据应用程序需求，资源被切分成大小不同的资源块，每份资源的基本信息由Container描述，
+ * 而具体的使用状态追踪则是由RMContainer完成。RMContainer是ResoueceManager中用于维护一个
+ * Container生命周期的数据结构，它的实现是RMContianerImpl类，该类维护了一个Container状态机，
+ * 记录了一个Container可能存在的各个状态以及导致状态转换的事件，当某个事件发生的时候，
+ * RMContainerImpl会根据实际情况进行Container状态的转移，同时触发一个行为。
+ *
  */
 public interface RMContainer extends EventHandler<RMContainerEvent>,
     Comparable<RMContainer> {

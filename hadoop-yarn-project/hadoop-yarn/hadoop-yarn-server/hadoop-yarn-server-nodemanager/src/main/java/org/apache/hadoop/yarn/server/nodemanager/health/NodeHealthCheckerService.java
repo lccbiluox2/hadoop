@@ -49,6 +49,18 @@ import java.util.stream.Collectors;
  * @see HealthReporter
  * @see LocalDirsHandlerService
  * @see TimedHealthReporterService
+ *
+ * 结点健康检查，NodeHealthCheckSevice通过周期性地运行一个自定义的脚步和向磁盘写文件
+ * 检查节点健康状况，并通过NodeStatusUpdater传递给ResouceManager.而ResouceManager
+ * 则根据每个NodeManager的健康状况适当调整分配的任务数目。一旦RM发现一个节点处于不健康的
+ * 状态，则会将其加入黑名单，此后不再为它分配任务，直到再次转为健康状态。需要注意的是，节点
+ * 被加入黑名单后，正在运行的Container仍会正常运行，不会被杀死。
+ *
+ * 第一种方式通过管理员自定义的Shell脚步。（NM上专门有一个周期性任务执行该脚步，一旦该脚步
+ * 输出以"ERROR"开头的字符串，则认为结点处于不健康状态）
+ *
+ * 第二种是判断磁盘好坏。（NM上专门有一个周期性任务检测磁盘的好坏，如果坏磁盘数据达到一定的比
+ * 例，则认为结点处于不健康的状态）。
  */
 public class NodeHealthCheckerService extends CompositeService
     implements HealthReporter {

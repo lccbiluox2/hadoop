@@ -25,6 +25,16 @@ import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.event.ContainerExpiredSchedulerEvent;
 import org.apache.hadoop.yarn.util.AbstractLivelinessMonitor;
 
+/**
+ * 8/1/22 6:57 PM 九师兄
+ *
+ * 当一个ApplicationMaster获得一个Container后，YARN不允许ApplicationMaster长时间
+ * 不对其使用，这样会降低整个集群的利用率。当ApplicationMaster收到RM新分配的一个Container
+ * 后，必须再一定的时间内（默认为10min）内在对应的NM上启动该Container，否则RM将强制回收该
+ * Container，而一个已经分配的Container是否被回收则是由ContinerAllocationExpier决定和
+ * 执行的。
+ *
+ **/
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class ContainerAllocationExpirer extends
     AbstractLivelinessMonitor<AllocationExpirationInfo> {

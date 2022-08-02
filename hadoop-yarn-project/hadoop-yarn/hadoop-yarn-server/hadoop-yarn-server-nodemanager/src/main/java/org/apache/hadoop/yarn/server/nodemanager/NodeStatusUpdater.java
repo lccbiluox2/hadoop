@@ -23,6 +23,16 @@ import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.server.nodemanager.nodelabels.NodeAttributesProvider;
 import org.apache.hadoop.yarn.server.nodemanager.nodelabels.NodeLabelsProvider;
 
+/**
+ * 8/1/22 4:54 PM 九师兄
+ *
+ * NodeStatusUpdater是NodeManager与ResourceManager通信的唯一通道。
+ * 当NodeManager启动时，该组件向ResourceManager注册，并汇报节点上可用的
+ * 资源(该值在运行过程中不再汇报）；之后,该组件周期性与ResourceManager通信，
+ * 汇报各个Container的状态更新，包括节点上正运行的Container、已完成的Container等信息，
+ * 同时ResouceManager会返回待清理Container列表、待清理应用程序列表、诊断信息、
+ * 各种Token等信息。
+ **/
 public interface NodeStatusUpdater extends Service {
 
   /**

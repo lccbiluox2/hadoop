@@ -94,6 +94,28 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+/**
+ * 8/1/22 5:11 PM 九师兄
+ *
+ *  NodeManager维护了三类状态机，分别是:Application、Container和LocalizedResource,
+ *  它们均直接或者间接参与维护一个应用程序的生命周期。
+ *
+ *  当NodeManager收到来自某个应用程序第一次Container启动命令时，会创建一个Application
+ *  状态机跟踪该应用程序在该结点上的生命周期，而每个Container的运行过程同样由一个状态机维护。
+ *  此外Application所需的资源(比如文本文件、JAR包、归档文件等）需要从HDFS上下载，每个资源
+ *  的下载过程均由一个状态机LocalizedResouce维护和跟踪。
+ *
+ *  NM上Application维护的信息是ResourceManager端Application信息的子集，这有利于对一个
+ *  节点上的同一个Application的所有Container进行统一管理（比如记录每一个Application运行
+ *  在该节点上的Container列表，杀死一个Application的所有Container等）。它实际的实现类是
+ *  ApplicationImpl，该类维护了一个Application状态机，记录了Application可能存在的各个
+ *  状态以及导致状态间转换的事件。需要注意的是NM上的Application生命周期与ResourceManager
+ *  上Application的生命周期是一致的。
+ *
+ *  LocalizedResource是NodeManager中维护一种“资源”(资源文件、JAR包、归档文件等外部文件资源)
+ *  生命周期的数据结构，它维护了一个状态，记录了"资源"可能存在的各种状态以及导致状态间转换的事件。
+ *
+ **/
 public class NodeManager extends CompositeService
     implements EventHandler<NodeManagerEvent>, NodeManagerMXBean {
 

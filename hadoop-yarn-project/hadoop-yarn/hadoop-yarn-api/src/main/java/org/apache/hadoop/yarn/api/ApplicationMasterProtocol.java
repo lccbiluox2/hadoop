@@ -168,6 +168,11 @@ public interface ApplicationMasterProtocol {
    *           resources.
    * @see AllocateRequest
    * @see AllocateResponse
+   *
+   *  AM向RM注册后，必须周期性通过RPC函数ApplicationMasterProtocol#allocate向
+   *  ResrouceManager汇报心跳以表明自己还活着。如果一段时间按(默认是10min)内未汇报心跳，
+   *  则ResourceMananger宣布它死亡，进而导致应用程序重新运行或者直接退出。
+   *
    */
   @Public
   @Stable

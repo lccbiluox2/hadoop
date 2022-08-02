@@ -62,6 +62,11 @@ import org.apache.hadoop.yarn.util.SystemClock;
 
 import org.apache.hadoop.thirdparty.com.google.common.annotations.VisibleForTesting;
 
+/**
+ * 8/1/22 6:39 PM 九师兄
+ *
+ * 管理exclude和include节点列表，维护正常节点和异常节点列表。
+ **/
 @SuppressWarnings("unchecked")
 public class NodesListManager extends CompositeService implements
     EventHandler<NodesListManagerEvent> {
