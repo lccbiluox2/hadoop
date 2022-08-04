@@ -898,6 +898,7 @@ public abstract class Server {
       int count = responseWaitCount.decrementAndGet();
       assert count >= 0 : "response has already been sent";
       if (count == 0) {
+        //  todo: 下午11:04 九师兄 重点
         doResponse(null);
       }
     }
@@ -912,6 +913,7 @@ public abstract class Server {
     }
 
     void doResponse(Throwable t) throws IOException {
+      //  todo: 下午11:05 九师兄 这里要看 Server.RpcCall.doResponse
       doResponse(t, RpcStatusProto.FATAL);
     }
 
@@ -1038,8 +1040,10 @@ public abstract class Server {
       ResponseParams responseParams = new ResponseParams();
 
       try {
-        /**
-         * 注释:执行 RPC请求的处理
+        /***
+         * 2022/8/4 下午10:58 lcc 九师兄
+         *
+         * todo 注释:执行 RPC请求的处理
          * 1、call方法执行RPC请求的真正处理，内部就是通过反射调用服务实例的对应同名方法，得到结果
          * 2、value 就是call 方法的执行结果
          *
@@ -1064,9 +1068,11 @@ public abstract class Server {
         details.set(Timing.LOCKFREE, deltaNanos, TimeUnit.NANOSECONDS);
         startNanos = Time.monotonicNowNanos();
 
+        //  todo: 下午11:03 九师兄 先把响应对象设置到返回对象中
         setResponseFields(value, responseParams);
-        /**
-         * 返回响应给客户端
+        /***
+         * 2022/8/4 下午11:03 lcc 九师兄
+         * todo:  返回响应给客户端
          */
         sendResponse();
 
@@ -1125,14 +1131,17 @@ public abstract class Server {
         // on the response while being sent.  the original call is
         // effectively discarded since the wait count won't hit zero
         call = new RpcCall(this);
+        //  todo: 下午11:05 九师兄 重点
         setupResponse(call, status, RpcErrorCodeProto.ERROR_RPC_SERVER,
             null, t.getClass().getName(), StringUtils.stringifyException(t));
       } else {
+        //  todo: 下午11:05 九师兄 重点
         setupResponse(call, call.responseParams.returnStatus,
             call.responseParams.detailedErr, call.rv,
             call.responseParams.errorClass,
             call.responseParams.error);
       }
+      //  todo: 下午11:08 九师兄 上面已经将响应加入进入了，现在我们要返回给客户端
       connection.sendResponse(call);
     }
 
@@ -1262,7 +1271,7 @@ public abstract class Server {
       }
 
       // Register accepts on the server socket with the selector.
-      // NIO 服务端注册 OP_ACCEPT 事件,等待NIO的客户端的连接请求发过来
+      // 下午10:20 九师兄 ToDo： NIO 服务端注册 OP_ACCEPT 事件,等待NIO的客户端的连接请求发过来
       acceptChannel.register(selector, SelectionKey.OP_ACCEPT);
       this.setName("IPC Server listener on " + port);
       this.setDaemon(true);
@@ -1289,6 +1298,7 @@ public abstract class Server {
       public void run() {
         LOG.info("Starting " + Thread.currentThread().getName());
         try {
+          // 下午10:19 九师兄 todo:重点
           doRunLoop();
         } finally {
           try {
@@ -1304,17 +1314,23 @@ public abstract class Server {
         while (running) {
           SelectionKey key = null;
           try {
+
+            // 下午10:50 九师兄  注册OP_READ，从pendingConnections 中获取刚刚建立链接成功的客户端
+            // 下午10:50 九师兄  注释:注册OP_READ事件，读取数据
+
             // consume as many connections as currently queued to avoid
             // unbridled acceptance of connections that starves the select
             int size = pendingConnections.size();
             for (int i=size; i>0; i--) {
               Connection conn = pendingConnections.take();
+              // 下午10:50 九师兄 todo: 注册 OP_READ事件
               conn.channel.register(readSelector, SelectionKey.OP_READ, conn);
             }
+            // 下午10:20 九师兄 todo: 如果客户端发生连接请求，则一定有 OP_ACCEPT 的响应
             readSelector.select();
 
             /**
-             *
+             * 如果有链接请求这里一定不为空
              */
             Iterator<SelectionKey> iter = readSelector.selectedKeys().iterator();
             while (iter.hasNext()) {
@@ -1379,7 +1395,12 @@ public abstract class Server {
       while (running) {
         SelectionKey key = null;
         try {
+          // 下午10:20 九师兄 todo: 如果客户端发生连接请求，则一定有 OP_ACCEPT 的响应
           getSelector().select();
+          /***
+           * 2022/8/4 下午10:37 lcc 九师兄
+           * 如果有链接请求这里一定不为空
+           */
           Iterator<SelectionKey> iter = getSelector().selectedKeys().iterator();
           while (iter.hasNext()) {
             key = iter.next();
@@ -1387,6 +1408,7 @@ public abstract class Server {
             try {
               if (key.isValid()) {
                 if (key.isAcceptable())
+                  // 下午10:37 九师兄 重点
                   doAccept(key);
               }
             } catch (IOException e) {
@@ -1446,9 +1468,13 @@ public abstract class Server {
 
         channel.configureBlocking(false);
         channel.socket().setTcpNoDelay(tcpNoDelay);
+        // 下午10:38 九师兄 设置持久连接
         channel.socket().setKeepAlive(true);
-        
+
+        // 下午10:38 九师兄 todo: 获取一个 Reader 轮训方式获取
         Reader reader = getReader();
+        // 下午10:44 九师兄 todo: 给完成了连接的client ( SocketChannel )创建 一个链接对象进行管理
+        // 下午10:45 九师兄    注意这个Connection要和这个Reader进行绑定
         Connection c = connectionManager.register(channel,
             this.listenPort, this.isOnAuxiliaryPort);
         // If the connectionManager can't take it, close the connection.
@@ -1459,8 +1485,14 @@ public abstract class Server {
           connectionManager.droppedConnections.getAndIncrement();
           continue;
         }
-        // 绑定
+        // todo: 绑定 注意这个Connection要和这个Reader进行绑定
+        //   将新构造的connection 作为attachment 绑定到SelectionKey 上
         key.attach(c);  // so closeCurrentConnection can get the object
+        /***
+         * 2022/8/4 下午10:48 lcc 九师兄
+         *
+         * 下午10:46 九师兄 todo: 绑定
+         */
         reader.addConnection(c);
         /**
          * 最终的结果，完成了链接之后
@@ -1483,6 +1515,7 @@ public abstract class Server {
       c.setLastContact(Time.now());
       
       try {
+        // 下午10:51 九师兄 todo: 核心读取数据并且处理
         count = c.readAndProcess();
       } catch (InterruptedException ieo) {
         LOG.info(Thread.currentThread().getName() + ": readAndProcess caught InterruptedException", ieo);
@@ -1527,6 +1560,7 @@ public abstract class Server {
     // The method that will return the next reader to work with
     // Simplistic implementation of round robin for now
     Reader getReader() {
+      // 下午10:45 九师兄 简单轮训查找
       currentReader = (currentReader + 1) % readers.length;
       return readers[currentReader];
     }
@@ -1764,8 +1798,9 @@ public abstract class Server {
                 // Wakeup the thread blocked on select, only then can the call 
                 // to channel.register() complete.
                 writeSelector.wakeup();
-                /**
-                 * response 注册 OP_WRITE 事件
+                /***
+                 * 2022/8/4 下午11:12 lcc 九师兄
+                 * todo: response 注册 OP_WRITE 事件 然后我们看Response线程去分批次去写
                  */
                 channel.register(writeSelector, SelectionKey.OP_WRITE, call);
               } catch (ClosedChannelException e) {
@@ -2673,6 +2708,7 @@ public abstract class Server {
               RpcErrorCodeProto.FATAL_INVALID_RPC_HEADER,
               "Connection context not established");
         } else {
+          // 下午10:18 九师兄 todo:处理数据
           processRpcRequest(header, buffer);
         }
       } catch (RpcServerException rse) {
@@ -2789,7 +2825,7 @@ public abstract class Server {
                 .build();
       }
 
-      // todo: 封装一个rpcCall
+      // todo: 封装一个rpcCall,所有的rpc请求数据都在rpcRequest中
       RpcCall call = new RpcCall(this, header.getCallId(),
           header.getRetryCount(), rpcRequest,
           ProtoUtil.convert(header.getRpcKind()),
@@ -2928,6 +2964,10 @@ public abstract class Server {
     // must invoke call.sendResponse to allow lifecycle management of
     // external, postponed, deferred calls, etc.
     private void sendResponse(RpcCall call) throws IOException {
+      /***
+       * 2022/8/4 下午11:09 lcc 九师兄
+       * todo: 这个看起来是同步操作
+       */
       responder.doRespond(call);
     }
 
@@ -2981,10 +3021,12 @@ public abstract class Server {
       throws IOException, InterruptedException {
     try {
       // queue the call, may be blocked if blocking is true.
-      // 这里会根据阻塞与非阻塞 采用不同的方法
+      //  todo: 下午10:54 九师兄 这里会根据阻塞与非阻塞 采用不同的方法
       if (blocking) {
         callQueue.put(call);
       } else {
+        //  todo: 下午10:55 九师兄 方进入之后我们可以看
+        //   org.apache.hadoop.ipc.Server.Handler 的run方法 直接搜索  callQueue.take
         callQueue.add(call);
       }
       long deltaNanos = Time.monotonicNowNanos() - call.timestampNanos;
@@ -3025,7 +3067,15 @@ public abstract class Server {
         boolean connDropped = true;
 
         try {
-          // todo: handler线程消费 callQueue 队列
+          /**
+           * 2022/8/4 下午10:57 lcc 九师兄
+           *
+           * todo: handler线程消费 callQueue 队列
+           *
+           * 注释:
+           * 1、Reader读取client 发送过来的RPC 请求数据包，然后封装成RpcCall 对象加入到callQueue队列
+           * 2、Handler线程专门门负责消费: callQueue 中的消息: RpcCall
+           */
           call = callQueue.take(); // pop the queue; maybe blocked here
           startTimeNanos = Time.monotonicNowNanos();
           if (alignmentContext != null && call.isCallCoordinated() &&
@@ -3355,12 +3405,14 @@ public abstract class Server {
     if (status == RpcStatusProto.SUCCESS) {
       RpcResponseHeaderProto header = headerBuilder.build();
       try {
+        //  todo: 下午11:05 九师兄 重点
         setupResponse(call, header, rv);
       } catch (Throwable t) {
         LOG.warn("Error serializing call response for call " + call, t);
         // Call back to same function - this is OK since the
         // buffer is reset at the top, and since status is changed
         // to ERROR it won't infinite loop.
+        //  todo: 下午11:05 九师兄 重点
         setupResponse(call, RpcStatusProto.ERROR,
             RpcErrorCodeProto.ERROR_SERIALIZING_RESPONSE,
             null, t.getClass().getName(),
@@ -3379,14 +3431,17 @@ public abstract class Server {
       RpcResponseHeaderProto header, Writable rv) throws IOException {
     final byte[] response;
     if (rv == null || (rv instanceof RpcWritable.ProtobufWrapper)) {
+      //  todo: 下午11:05 九师兄 重点
       response = setupResponseForProtobuf(header, rv);
     } else {
+      //  todo: 下午11:05 九师兄 重点
       response = setupResponseForWritable(header, rv);
     }
     if (response.length > maxRespSize) {
       LOG.warn("Large response size " + response.length + " for call "
           + call.toString());
     }
+    //  todo: 下午11:05 九师兄 重点 这个 call 中既包含了 请求对象 也包含了响应对象
     call.setResponse(ByteBuffer.wrap(response));
   }
 
