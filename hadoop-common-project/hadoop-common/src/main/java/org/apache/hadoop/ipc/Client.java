@@ -829,8 +829,11 @@ public class Client implements AutoCloseable {
         short numRetries = 0;
         Random rand = null;
         while (true) {
+          // 下午9:23 九师兄 todo: 创建客户端 建立网络连接
           setupConnection(ticket);
+          // 下午9:23 九师兄 todo: 构建网络输入输出流
           ipcStreams = new IpcStreams(socket, maxResponseLength);
+          // 下午9:23 九师兄 ToDo：写请求header 总共7个字节的信息
           writeConnectionHeader(ipcStreams);
           if (authProtocol == AuthProtocol.SASL) {
             try {
@@ -879,13 +882,16 @@ public class Client implements AutoCloseable {
             }
           }
 
+          // 下午9:25 九师兄 todo: 心跳输入流的设置
           if (doPing) {
             ipcStreams.setInputStream(new PingInputStream(ipcStreams.in));
           }
 
+          // 下午9:25 九师兄 todo: 将链接上下文信息 写给对方
           writeConnectionContext(remoteId, authMethod);
 
           // update last activity time
+          // 下午9:26 九师兄 todo: 更新最近一个活跃时间
           touch();
 
           span = Tracer.getCurrentSpan();
@@ -895,6 +901,7 @@ public class Client implements AutoCloseable {
 
           // start the receiver thread after the socket connection has been set
           // up
+          // 下午9:26 九师兄 todo: 启动开始线程开始工作 所以我们要进入 Connection的run方法
           start();
           return;
         }
@@ -1480,7 +1487,8 @@ public class Client implements AutoCloseable {
     /**
      * 获取连接 Connection 是一个线程 run 方法的核心逻辑是等待接收结果
      * 建立RPC客户端到服务端的连接
-     */call.setAlignmentContext(alignmentContext);
+     */
+    call.setAlignmentContext(alignmentContext);
     final Connection connection = getConnection(remoteId, call, serviceClass,
         fallbackToSimpleAuth);
 
@@ -1643,10 +1651,12 @@ public class Client implements AutoCloseable {
           throw new IOException("Failed to get connection for " + remoteId
               + ", " + call + ": " + this + " is already stopped");
         }
+        // 下午9:21 九师兄 todo: 构建连接对象 加入到 connections 集合中
         connection = connections.computeIfAbsent(remoteId,
             id -> new Connection(id, serviceClass, removeMethod));
       }
 
+      // 下午9:21 九师兄 todo: 将Rpc请求加入到请求队列
       if (connection.addCall(call)) {
         break;
       } else {
@@ -1660,6 +1670,7 @@ public class Client implements AutoCloseable {
 
     // If the server happens to be slow, the method below will take longer to
     // establish a connection.
+    // 下午9:22 九师兄 todo: 发起连接，客户端与服务端建立连接
     connection.setupIOstreams(fallbackToSimpleAuth);
     return connection;
   }

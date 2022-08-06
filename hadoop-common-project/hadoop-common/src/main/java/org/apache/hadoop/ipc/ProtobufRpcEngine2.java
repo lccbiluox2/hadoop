@@ -155,6 +155,7 @@ public class ProtobufRpcEngine2 implements RpcEngine {
     protected Invoker(Class<?> protocol, Client.ConnectionId connId,
         Configuration conf, SocketFactory factory) {
       this.remoteId = connId;
+      // 2022/8/2 下午9:13 九师兄 todo: 创建客户端
       this.client = CLIENTS.getClient(conf, factory, RpcWritable.Buffer.class);
       this.protocolName = RPC.getProtocolName(protocol);
       this.clientProtocolVersion = RPC
@@ -553,6 +554,7 @@ public class ProtobufRpcEngine2 implements RpcEngine {
         String declaringClassProtoName =
             rpcRequest.getDeclaringClassProtocolName();
         long clientVersion = rpcRequest.getClientProtocolVersion();
+        //  todo: 下午10:59 九师兄 继续
         return call(server, connectionProtocolName, request, receiveTime,
             methodName, declaringClassProtoName, clientVersion);
       }
@@ -574,6 +576,7 @@ public class ProtobufRpcEngine2 implements RpcEngine {
         }
         //Legacy protobuf implementation. Handle using legacy (Non-shaded)
         // protobuf classes.
+        //  todo: 下午11:00 九师兄 继续往下走
         return ProtobufRpcEngine.Server
             .processCall(server, connectionProtocolName, request, methodName,
                 protocolImpl);

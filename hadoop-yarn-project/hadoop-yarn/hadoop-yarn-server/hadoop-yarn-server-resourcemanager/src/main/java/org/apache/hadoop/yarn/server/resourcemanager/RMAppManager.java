@@ -437,6 +437,7 @@ public class RMAppManager implements EventHandler<RMAppManagerEvent>,
       String user, boolean isRecovery, long startTime,
       RMAppState recoveredFinalState) throws YarnException {
 
+    // 2022/7/28 下午10:32 九师兄 上下文对象
     ApplicationPlacementContext placementContext = null;
     if (recoveredFinalState == null) {
       placementContext = placeApplication(rmContext.getQueuePlacementManager(),

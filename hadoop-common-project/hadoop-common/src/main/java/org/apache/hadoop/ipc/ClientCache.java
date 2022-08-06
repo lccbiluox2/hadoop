@@ -56,6 +56,7 @@ public class ClientCache {
     // per-job, we choose (a).
     Client client = clients.get(factory);
     if (client == null) {
+      // 2022/8/2 下午9:11 九师兄 todo: 这里是真正的构建了一个客户端
       client = new Client(valueClass, conf, factory);
       clients.put(factory, client);
     } else {

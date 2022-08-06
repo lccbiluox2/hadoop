@@ -1096,7 +1096,7 @@ public class RPC {
     @Override
     public Writable call(RPC.RpcKind rpcKind, String protocol,
         Writable rpcRequest, long receiveTime) throws Exception {
-      // 继续调用
+      //  todo: 下午10:59 九师兄 继续调用
       return getServerRpcInvoker(rpcKind).call(this, protocol, rpcRequest,
           receiveTime);
     }

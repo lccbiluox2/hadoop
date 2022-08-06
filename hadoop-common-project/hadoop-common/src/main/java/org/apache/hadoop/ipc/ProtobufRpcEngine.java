@@ -482,6 +482,11 @@ public class ProtobufRpcEngine implements RpcEngine {
         server.rpcDetailedMetrics.init(protocolImpl.protocolClass);
         CURRENT_CALL_INFO.set(new CallInfo(server, methodName));
         currentCall.setDetailedMetricsName(methodName);
+        /**
+         * 2022/8/4 下午11:00 lcc 九师兄
+         * todo: 重点方法 这里是 callBlockingMethod 是阻塞调用
+         * 这个service就是那个服务实例，这个是通过反射拿到的
+         */
         result = service.callBlockingMethod(methodDescriptor, null, param);
         // Check if this needs to be a deferred response,
         // by checking the ThreadLocal callback being set
@@ -501,6 +506,7 @@ public class ProtobufRpcEngine implements RpcEngine {
       } finally {
         CURRENT_CALL_INFO.set(null);
       }
+      //  todo: 下午11:02 九师兄 最终结果封装
       return RpcWritable.wrap(result);
     }
   }
