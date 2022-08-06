@@ -751,6 +751,8 @@
     <value>0</value>
   </property>
 
+<!--  RM的逻辑ID列表。例如，“rm1，rm2”。-->
+
   <property>
     <description>The list of RM nodes in the cluster when HA is
       enabled. See description of yarn.resourcemanager.ha
@@ -1002,6 +1004,7 @@
     <value>/yarn/conf</value>
   </property>
 
+<!--  控制YARN系统度量标准是否由RM在时间线服务器上发布的设置。默认为false。-->
   <property>
     <description>The setting that controls whether yarn system metrics is
     published to the Timeline server (version one) or not, by RM.
@@ -1178,6 +1181,7 @@
     <value>600000</value>
   </property>
 
+<!--  指示是否启用资源配置文件支持。默认为false。-->
   <property>
     <description>
     Flag to enable/disable resource profiles
@@ -1251,6 +1255,7 @@
     <value>JAVA_HOME,HADOOP_COMMON_HOME,HADOOP_HDFS_HOME,HADOOP_CONF_DIR,CLASSPATH_PREPEND_DISTCACHE,HADOOP_YARN_HOME,HADOOP_HOME,PATH,LANG,TZ</value>
   </property>
 
+<!--  这应该设置为“org.apache.hadoop.yarn.server.nodemanager.LinuxContainerExecutor”。CGroups是Linux内核功能，通过LinuxContainerExecutor公开。-->
   <property>
     <description>who will execute(launch) the containers.</description>
     <name>yarn.nodemanager.container-executor.class</name>
@@ -1715,6 +1720,7 @@ YARN也会按照这些内存来使用（傻不傻？），因此，这个值通�
     <value>100</value>
   </property>
 
+<!--  此设置允许您限制所有YARN容器的CPU使用率。它为容器的累计CPU使用量设置了硬上限。例如，如果设置为60，则所有YARN容器的组合CPU使用率不会超过60％。-->
   <property>
     <description>Percentage of CPU that can be allocated
     for containers. This setting allows users to limit the amount of
@@ -1929,6 +1935,7 @@ YARN也会按照这些内存来使用（傻不傻？），因此，这个值通�
     <name>yarn.nodemanager.linux-container-executor.path</name>
   </property>
 
+<!--  这应该设置为“org.apache.hadoop.yarn.server.nodemanager.util.CgroupsLCEResourcesHandler”。使用LinuxContainerExecutor不会强制您使用CGroup。如果要使用CGroup，则必须将resource-handler-class设置为CGroupsLCEResourceHandler。-->
   <property>
     <description>The class which should help the LCE handle resources.</description>
     <name>yarn.nodemanager.linux-container-executor.resources-handler.class</name>
@@ -1936,6 +1943,7 @@ YARN也会按照这些内存来使用（傻不傻？），因此，这个值通�
     <!-- <value>org.apache.hadoop.yarn.server.nodemanager.util.CgroupsLCEResourcesHandler</value> -->
   </property>
 
+<!--  用于放置YARN的cgroups层次结构（不能包含逗号）。如果yarn.nodemanager.linux-container-executor.cgroups.mount为false（即，如果已经预先配置了cgroup）并且YARN用户具有对父目录的写访问权限，则将创建该目录。如果该目录已存在，则管理员必须以递归方式向其授予YARN写入权限。-->
   <property>
     <description>The cgroups hierarchy under which to place YARN proccesses (cannot contain commas).
     If yarn.nodemanager.linux-container-executor.cgroups.mount is false
@@ -1949,6 +1957,7 @@ YARN也会按照这些内存来使用（傻不傻？），因此，这个值通�
     <value>/hadoop-yarn</value>
   </property>
 
+<!--  LCE是否应该尝试安装cgroup如果没有找到 - 可以是真或假。-->
   <property>
     <description>Whether the LCE should attempt to mount cgroups if not found.
     This property only applies when the LCE resources handler is set to
@@ -1957,6 +1966,8 @@ YARN也会按照这些内存来使用（傻不傻？），因此，这个值通�
     <name>yarn.nodemanager.linux-container-executor.cgroups.mount</name>
     <value>false</value>
   </property>
+
+<!--  可选的。CGroups的位置。如果yarn.nodemanager.linux-container-executor.cgroups.mount为true ，LCE将尝试在此处挂载它们。如果yarn.nodemanager.linux-container-executor.cgroups.mount为false ，LCE将尝试使用此位置的CGroup。如果指定，则此路径及其子目录（CGroup层次结构）必须存在，并且在启动NodeManager之前，它们应该是YARN可读写的。有关详细信息，请参阅下面的CGroups挂载选项-->
 
   <property>
     <description>This property sets the path from which YARN will read the
@@ -2016,6 +2027,7 @@ YARN也会按照这些内存来使用（傻不傻？），因此，这个值通�
     <value>^[_.A-Za-z0-9][-@_.A-Za-z0-9]{0,255}?[$]?$</value>
   </property>
 
+<!--  CGroups允许cpu使用限制变硬或变软。如果此设置为true，则即使备用CPU可用，容器也不能使用比分配的CPU更多的CPU使用率。这可确保容器只能使用已分配的CPU。设置为false时，容器可以使用备用CPU（如果可用）。应该注意的是，无论是否设置为true或false，所有容器的组合CPU使用率都不会超过“yarn.nodemanager.resource.percentage-physical-cpu-limit”中指定的值。-->
   <property>
     <description>This flag determines whether apps should run with strict resource limits
     or be allowed to consume spare resources if they need them. For example, turning the
@@ -2678,6 +2690,7 @@ YARN也会按照这些内存来使用（傻不傻？），因此，这个值通�
     <value>1.0f</value>
   </property>
 
+<!--  在服务器端，它指示是否启用时间线服务。在客户端，用户可以启用它来指示客户是否想要使用时间线服务。如果在客户端启用了安全性，则yarn客户端会尝试获取时间线服务器的委托令牌。默认为false。-->
   <property>
     <description>
     In the server side it indicates whether timeline service is enabled or not.
@@ -2736,6 +2749,7 @@ YARN也会按照这些内存来使用（傻不傻？），因此，这个值通�
     <value>10000</value>
   </property>
 
+<!--  存储时间轴商店的类名。默认为org.apache.hadoop.yarn.server.timeline.LeveldbTimelineStore。-->
   <property>
     <description>Store class name for timeline store.</description>
     <name>yarn.timeline-service.store-class</name>
@@ -2754,30 +2768,35 @@ YARN也会按照这些内存来使用（傻不傻？），因此，这个值通�
     <value>604800000</value>
   </property>
 
+<!--  存储leveldb时间线存储的文件名。默认为$ {hadoop.tmp.dir}/yarn/timeline。-->
   <property>
     <description>Store file name for leveldb timeline store.</description>
     <name>yarn.timeline-service.leveldb-timeline-store.path</name>
     <value>${hadoop.tmp.dir}/yarn/timeline</value>
   </property>
 
+<!--  leveldb时间轴存储的删除周期之间等待的时间长度，以毫秒为单位。默认为300000。-->
   <property>
     <description>Length of time to wait between deletion cycles of leveldb timeline store in milliseconds.</description>
     <name>yarn.timeline-service.leveldb-timeline-store.ttl-interval-ms</name>
     <value>300000</value>
   </property>
 
+<!--  leveldb时间轴存储的未压缩块的读缓存大小（以字节为单位）。默认为104857600。-->
   <property>
     <description>Size of read cache for uncompressed blocks for leveldb timeline store in bytes.</description>
     <name>yarn.timeline-service.leveldb-timeline-store.read-cache-size</name>
     <value>104857600</value>
   </property>
 
+<!--  最近读取的实体开始时间的高速缓存大小，用于leveldb时间线存储在实体数量中。默认为10000。-->
   <property>
     <description>Size of cache for recently read entity start times for leveldb timeline store in number of entities.</description>
     <name>yarn.timeline-service.leveldb-timeline-store.start-time-read-cache-size</name>
     <value>10000</value>
   </property>
 
+<!--  最近编写的leveldb时间轴实体开始时间的缓存大小以实体数量存储。默认为10000。-->
   <property>
     <description>Size of cache for recently written entity start times for leveldb timeline store in number of entities.</description>
     <name>yarn.timeline-service.leveldb-timeline-store.start-time-write-cache-size</name>
@@ -2869,12 +2888,14 @@ YARN也会按照这些内存来使用（傻不傻？），因此，这个值通�
     <value>false</value>
   </property>
 
+<!--  存储时间线状态存储的类名。默认为org.apache.hadoop.yarn.server.timeline.recovery.LeveldbTimelineStateStore。-->
   <property>
     <description>Store class name for timeline state store.</description>
     <name>yarn.timeline-service.state-store-class</name>
     <value>org.apache.hadoop.yarn.server.timeline.recovery.LeveldbTimelineStateStore</value>
   </property>
 
+<!--  存储leveldb时间轴状态存储的文件名。-->
   <property>
     <description>Store file name for leveldb state store.</description>
     <name>yarn.timeline-service.leveldb-state-store.path</name>
@@ -4220,6 +4241,7 @@ YARN也会按照这些内存来使用（傻不傻？），因此，这个值通�
   </property>
 
   <!-- resource types configuration -->
+<!--  逗号分隔的附加资源列表。可能不包括内存，内存-mb或vcores-->
   <property>
     <name>yarn.resource-types</name>
     <value></value>
