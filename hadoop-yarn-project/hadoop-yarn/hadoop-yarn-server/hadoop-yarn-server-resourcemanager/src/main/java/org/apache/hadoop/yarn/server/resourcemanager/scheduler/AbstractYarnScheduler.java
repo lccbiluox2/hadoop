@@ -1177,6 +1177,8 @@ public abstract class AbstractYarnScheduler
   /**
    * Process a heartbeat update from a node.
    * @param nm The RMNode corresponding to the NodeManager
+   *
+   * todo: 处理一个来自于NM的心跳信息，用来更新Container 的状态
    */
   protected void nodeUpdate(RMNode nm) {
     LOG.debug("nodeUpdate: {} cluster capacity: {}",
@@ -1186,6 +1188,7 @@ public abstract class AbstractYarnScheduler
     // NOTICE: it is possible to not find the NodeID as a node can be
     // decommissioned at the same time. Skip updates if node is null.
     SchedulerNode schedulerNode = getNode(nm.getNodeID());
+    // todo: lcc 获取已经完成的Containers列表，后续可以进程资源回收
     List<ContainerStatus> completedContainers = updateNewContainerInfo(nm,
         schedulerNode);
 

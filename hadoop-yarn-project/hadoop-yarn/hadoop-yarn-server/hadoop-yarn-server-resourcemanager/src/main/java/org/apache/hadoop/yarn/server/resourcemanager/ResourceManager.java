@@ -374,6 +374,8 @@ public class ResourceManager extends CompositeService
       // 如果RM被配置为使用嵌入的leader选举器，初始化leader选举器。
       // yarn.resourcemanager.ha.automatic-failover.enabled=true
       // yarn.resourcemanager.ha.automatic-failover.embedded = true
+      // 10:08 AM  九师兄  isAutomaticFailoverEmbedded如果为true 那么就是使用zookeeper默认的api
+      // 10:09 AM  九师兄 否则的话，就是使用curator封装的框架来操作zookeeper
       if (HAUtil.isAutomaticFailoverEnabled(conf)
           && HAUtil.isAutomaticFailoverEmbedded(conf)) {
         // 创建选举器 默认是 ActiveStandbyElectorBasedElectorService
@@ -384,6 +386,7 @@ public class ResourceManager extends CompositeService
     }
 
     // 创建 RMActiveServices 这里会启动很多很多组件
+    // 10:06 AM  九师兄 只有active的service才会执行的方法
     createAndInitActiveServices(false);
 
     // 获取yarn web 地址
@@ -534,10 +537,13 @@ public class ResourceManager extends CompositeService
   }
 
   protected ResourceScheduler createScheduler() {
+    // todo: 8/6/22  九师兄 yarn.resourcemanager.scheduler.class
+    // todo: 8/6/22  九师兄 获取上述参数配置的class名称
     String schedulerClassName = conf.get(YarnConfiguration.RM_SCHEDULER,
         YarnConfiguration.DEFAULT_RM_SCHEDULER);
     LOG.info("Using Scheduler: " + schedulerClassName);
     try {
+      // todo: 8/6/22  九师兄 反射实例化调度类
       Class<?> schedulerClazz = Class.forName(schedulerClassName);
       if (ResourceScheduler.class.isAssignableFrom(schedulerClazz)) {
         return (ResourceScheduler) ReflectionUtils.newInstance(schedulerClazz,
@@ -745,6 +751,9 @@ public class ResourceManager extends CompositeService
     @Override
     protected void serviceInit(Configuration configuration) throws Exception {
       // 创建一个用于选举的线程 StandByTransitionRunnable
+      // 10:10 AM  九师兄 之前创建了一个选举实例
+      // 10:10 AM  九师兄 现场创建一个选举线程
+      // 10:10 AM  九师兄 当选举实例尝试3次都无法选举成功，那么就会调用选举线程在后台轮训选举
       standByTransitionRunnable = new StandByTransitionRunnable();
 
       //创建RMSecretManagerService 服务，主要听一些token相关服务
@@ -752,6 +761,13 @@ public class ResourceManager extends CompositeService
       addService(rmSecretManagerService);
 
       // container 过期检查服务，默认10分钟过期 如果一个人申请了一个Container但是10分钟内，你没有使用 那么就会回收
+      /**
+       * 8/6/22 10:15 AM 九师兄
+       *
+       * 注释:监控Container是否过期(提交ApplicationMaster 时检查)
+       * 当AM收到RM新分配的一个Container 后，必须在一定的时间(默认为10min )
+       * 内在对应的NM上启动该Container ，否则，RM会回收该Container。
+       **/
       containerAllocationExpirer = new ContainerAllocationExpirer(rmDispatcher);
       addService(containerAllocationExpirer);
       rmContext.setContainerAllocationExpirer(containerAllocationExpirer);
@@ -1494,6 +1510,7 @@ public class ResourceManager extends CompositeService
    *                   or the RM initialization.
    */
   protected void createAndInitActiveServices(boolean fromActive) {
+    // 8/6/22  九师兄 重要
     activeServices = new RMActiveServices(this);
     activeServices.fromActive = fromActive;
     // 最终调用了RMActiveServices的 serviceInit 方法
@@ -1594,6 +1611,7 @@ public class ResourceManager extends CompositeService
       int port = webApp.port();
       WebAppUtils.setRMWebAppPort(conf, port);
     }
+    // 8/6/22  九师兄 启动所有子服务，包括选举服务，然后会开始选举
     super.serviceStart();
 
     // Non HA case, start after RM services are started.
@@ -1787,11 +1805,14 @@ public class ResourceManager extends CompositeService
           printUsage(System.err);
         }
       } else {
+        // 9:54 AM  九师兄  ResourceManager 初始化
         ResourceManager resourceManager = new ResourceManager();
         ShutdownHookManager.get().addShutdownHook(
           new CompositeServiceShutdownHook(resourceManager),
           SHUTDOWN_HOOK_PRIORITY);
+        // 9:54 AM  九师兄 各种服务创建和初始化
         resourceManager.init(conf);
+        // 9:54 AM  九师兄 各种服务启动
         resourceManager.start();
       }
     } catch (Throwable t) {

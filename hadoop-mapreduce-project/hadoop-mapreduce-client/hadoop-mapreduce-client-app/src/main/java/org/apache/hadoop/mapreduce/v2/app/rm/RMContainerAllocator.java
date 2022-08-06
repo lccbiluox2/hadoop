@@ -296,6 +296,16 @@ public class RMContainerAllocator extends RMContainerRequestor
       scheduledRequests.assign(allocatedContainers);
     }
 
+    /**
+     *todo: 8/6/22 1:20 PM 九师兄
+     * allocatedContainers这个是集群能提供的所有的Container
+     * 什么是Container ?
+     * 资源单位，逻辑概念
+     * 只要RM给你，意味着，这个资源理论上来说，是可用的
+     * 那么待会儿，这个MRAppMaster 还会发送命令让NodeManager 去启动。
+     * 如果NodeManager 接收到这个请求，但是发现这个本身资源不够了，返回一个失败的响应
+     * 然后MRAppMaster重新申请
+     **/
     int completedMaps = getJob().getCompletedMaps();
     int completedTasks = completedMaps + getJob().getCompletedReduces();
     if ((lastCompletedTasks != completedTasks) ||
@@ -1182,9 +1192,21 @@ public class RMContainerAllocator extends RMContainerRequestor
     
     // this method will change the list of allocatedContainers.
     /**
-     * 7/31/22 5:24 PM 九师兄
+     *todo: 8/6/22 1:19 PM 九师兄
      *
      * 最终是完成container和request的映射
+     *
+     * 注释:
+     * 1、scheduledRequests 是-个数据结构: 装的是MapTask 或者ReduceTask 的Cotainer 申请请求
+     * 2、在这之前，有一个心跳线程，每隔1s钟，在申请Container
+     * 考虑数据本地性!
+     * 最开始:
+     * 逻辑切片! InputSplit: file
+     * startoffset, endOffset, blockID, hosts === 申请一个 Contianer
+     * 最后: allocatedContainers 中的每个Container 必然包含: contianerID, hostname, prot
+     * 最终的条件:只要 Container 的host 等于InputSplit的一个host即可!
+     * 纪要考虑node 本地性，还要考虑rack 本地性，等等
+     *
      **/
     private void assign(List<Container> allocatedContainers) {
       Iterator<Container> it = allocatedContainers.iterator();

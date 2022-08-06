@@ -174,6 +174,57 @@ import org.slf4j.LoggerFactory;
  * register to the Dispatcher.
  * 
  * The information is shared across different components using AppContext.
+ *
+ *  MRAppMaster是MapReduce的ApplicationMaster实现，它使得MapReduce应用程序可以
+ *  直接运行于YARN之上。在YARN中，MRAppMaster负责管理MapReduce作业的生命周期，包括
+ *  作业管理、资源申请与再分配、Container启动与释放、作业恢复等。
+ *
+ *  MRAppMaster 主要由已下几种组件/服务组成：
+ *
+ *  ConainterAllocator
+ *        与RM通信，为MapReduce作业申请资源。作业的每个任务资源需求可描述为5元组:
+ *        <Priority,hostname,capacity,containers,relax_locality>,
+ *        分别表示作业优先级、期望资源所在的host、资源量(当前支持内存和CPU两种资源)、Container数据是否松弛本地化
+ *
+ * ClientService
+ *      ClientService是一个接口，由MRClientService实现。MRClientService实现了MRClientProtocol协议，
+ *      客户端可以通过该协议获取作业的执行状态(不必通过RM)和控制作业(比如杀死作业、改变作业优先级等）。
+ *
+ * Job
+ *     表示一个MapReduce作业，与MRv1中的JobInProgress功能是一样的，负责监控作业的运行
+ *     状态。它维护了一个作业的状态机，以实现异步执行各种作业相关的操作。
+ *
+ * Task
+ *     表示一个MapReduce作业的某个任务，与MRv1中的TaskInProgress功能类似，负责监控一个
+ *     任务的运行状态。它维护了一个任务状态机，以实现异步执行各种任务相关的操作。
+ *
+ * TaskAttempt
+ *      表示一个任务运行实例，它的执行逻辑与MRV1中的MapTask和ReduceTask运行实例完全一致，
+ *      实际上，它直接使用了MRv1中的数据处理引擎，但经过了一些优化。
+ *
+ * TaskCleaner
+ *      负责清理失败任务或被杀死任务使用的目录和产生的临时结果(统称为垃圾数据),它维护了一个
+ *      线程池和一个共享队列，异步删除任务产生的垃圾数据。
+ *
+ * Speculator
+ *      完成推测执行功能，当同一个作业的某个任务运行速度明显慢于其他任务时，会为该任务启动
+ *      一个备份任务。
+ *
+ * ContainerLauncher
+ *      负责与NM通信，以启动一个Container.当RM为作业分配资源后，ContainerLauncher会将
+ *      任务执行相关信息填充到Container中，包括任务运行所需资源、任务运行命令、任务运行环境、
+ *      任务依赖的外部文件等，然后与对应的NodeManager通信，要求它启动Container.
+ *
+ * TaskAttemptListener
+ *       负责管理各个任务的心跳信息，如果一个任务一段时间内未汇报心跳，则认为它死掉了，会
+ *       将其从系统中移除。
+ *
+ * JobHistoryEventHandler
+ *       负责对作业的各个事件记录日志。当MRApMaster出现故障时，YARN会将其重新调度到另
+ *       一个节点上。未了避免重新计算，MRAppMaster首先从HDFS上读取上次运行产生的日志，
+ *       以恢复已经完成的任务，进而能够只运行尚未运行完成的任务。
+ *
+ *
  */
 
 @SuppressWarnings("rawtypes")
