@@ -20,6 +20,7 @@ package org.apache.hadoop.yarn.server.resourcemanager;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 
+// todo: 九师兄  RMFatalEventType就是一个拥有表示两种RM的Fatal错时枚举类
 @InterfaceAudience.Private
 public enum RMFatalEventType {
   // Source <- Store

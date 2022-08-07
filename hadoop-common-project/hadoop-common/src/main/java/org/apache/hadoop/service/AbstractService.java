@@ -46,9 +46,11 @@ public abstract class AbstractService implements Service {
   /**
    * Service name.
    */
+  // todo: 九师兄  注意服务名用final修饰，一旦指定后不可改变
   private final String name;
 
   /** service state */
+  // todo: 九师兄  封装了服务状态的模型类
   private final ServiceStateModel stateModel;
 
   /**
@@ -65,11 +67,13 @@ public abstract class AbstractService implements Service {
    * List of state change listeners; it is final to ensure
    * that it will never be null.
    */
+  // todo: 九师兄  服务状态变化的监听器，
   private final ServiceOperations.ServiceListeners listeners
     = new ServiceOperations.ServiceListeners();
   /**
    * Static listeners to all events across all services
    */
+  // todo: 5Lmd5biI5YWE  注意和上面的监听器区分，这个是全局的、横跨所有服务的监听器
   private static ServiceOperations.ServiceListeners globalListeners
     = new ServiceOperations.ServiceListeners();
 
@@ -83,18 +87,21 @@ public abstract class AbstractService implements Service {
    * the state in which the service was when it failed.
    * Only valid when the service is stopped due to a failure
    */
+  // todo: 九师兄  服务失败时处于的状态，仅当服务因为一个错误导致失败时合法
   private STATE failureState = null;
 
   /**
    * object used to co-ordinate {@link #waitForServiceToStop(long)}
    * across threads.
    */
+  // todo: 九师兄  用来在多线程中协助 waitForServiceToStop方法，为true代表该服务已经终止
   private final AtomicBoolean terminationNotification =
     new AtomicBoolean(false);
 
   /**
    * History of lifecycle transitions
    */
+  // todo: lcc  生命周期历史组成的list
   private final List<LifecycleEvent> lifecycleHistory
     = new ArrayList<LifecycleEvent>(5);
 
@@ -103,6 +110,7 @@ public abstract class AbstractService implements Service {
    */
   private final Map<String,String> blockerMap = new HashMap<String, String>();
 
+  // todo: 九师兄  状态转义时用来做对象锁
   private final Object stateChangeLock = new Object();
  
   /**
@@ -153,6 +161,10 @@ public abstract class AbstractService implements Service {
    * @throws ServiceStateException if the configuration was null,
    * the state change not permitted, or something else went wrong
    */
+  // todo: 九师兄  重写自Service类，会调用 serviceInit方法
+  // 代码中可以看到，该方法如果多次反复调用，除了第一次以外的调用都不会起作用
+  // 也就是说该方法不可重入
+  // configuration参数为空、状态转移非法或者是其他出错时，会抛出ServiceStateException
   @Override
   public void init(Configuration conf) {
     if (conf == null) {
@@ -218,6 +230,9 @@ public abstract class AbstractService implements Service {
 
   /**
    * {@inheritDoc}
+   *
+   * 重写自Service类，会调用serviceStart方法
+   *   // 当前服务状态不允许start时，会抛出ServiceStateException
    */
   @Override
   public void stop() {
@@ -234,7 +249,9 @@ public abstract class AbstractService implements Service {
           throw ServiceStateException.convert(e);
         } finally {
           //report that the service has terminated
+          // todo: 九师兄  最终记录改服务已经终止
           terminationNotification.set(true);
+          // todo: 九师兄  唤醒阻塞在terminationNotification上面的所有线程
           synchronized (terminationNotification) {
             terminationNotification.notifyAll();
           }
@@ -263,6 +280,7 @@ public abstract class AbstractService implements Service {
    * Services are free to call this themselves.
    * @param exception the exception
    */
+  // todo: 九师兄  记录触发该方法的异常
   protected final void noteFailure(Exception exception) {
     LOG.debug("noteFailure", exception);
     if (exception == null) {
@@ -280,11 +298,14 @@ public abstract class AbstractService implements Service {
     }
   }
 
+  // todo: 九师兄  等待服务在指定时间内终止
   @Override
   public final boolean waitForServiceToStop(long timeout) {
     boolean completed = terminationNotification.get();
+    // todo: 九师兄  当服务未完成的时候，就等待指定timeout然后判断是否完成
     while (!completed) {
       try {
+        // todo: 九师兄 获取terminationNotification对象锁
         synchronized(terminationNotification) {
           terminationNotification.wait(timeout);
         }
@@ -296,6 +317,7 @@ public abstract class AbstractService implements Service {
         completed = terminationNotification.get();
       }
     }
+    // todo: 九师兄  最后返回当前是否服务终止
     return terminationNotification.get();
   }
 
@@ -318,6 +340,16 @@ public abstract class AbstractService implements Service {
    * @throws Exception on a failure -these will be caught,
    * possibly wrapped, and will trigger a service stop
    */
+  /**
+   *todo: 8/7/22 9:44 AM 九师兄
+   * 服务所需的所有初始化代码
+   *
+   * 这个方法仅会在特定的service类实例生命周期内被调用一次
+   *
+   * 方法实现中不需要使用synchronized，因为init方法内已阻止了方法重入
+   *
+   * 基本的实现是检查传入的conf参数和现有config对象是否一致，不一致就更新现有config
+   */
   protected void serviceInit(Configuration conf) throws Exception {
     if (conf != config) {
       LOG.debug("Config has been overridden during init");
@@ -336,6 +368,16 @@ public abstract class AbstractService implements Service {
    *
    * @throws Exception if needed -these will be caught,
    * wrapped, and trigger a service stop
+   */
+  /**
+   *todo: 8/7/22 9:44 AM 九师兄
+   * 在 INITED->STARTED 转移时调用
+   *
+   * 这个方法仅会在特定的service类实例生命周期内被调用一次
+   *
+   * 方法实现中不需要使用synchronized，因为start方法内已阻止了方法重入
+   *
+   * 按需抛出异常，被调用者捕获后然后触发服务停止
    */
   protected void serviceStart() throws Exception {
 
@@ -356,6 +398,18 @@ public abstract class AbstractService implements Service {
    *
    * @throws Exception if needed -these will be caught and logged.
    */
+  /**
+   *todo: 8/7/22 9:44 AM 九师兄
+   * 在 状态向 STARTED 转移时调用
+   *
+   * 这个方法仅会在特定的service类实例生命周期内被调用一次
+   *
+   * 方法实现中不需要使用synchronized，因为stop方法内已阻止了方法重入
+   *
+   * 实现该方法的代码在失败处理方面必须是十分健壮的，包括检查空引用等
+   *
+   * 按需抛出异常，被调用者捕获后会记录日志
+   */
   protected void serviceStop() throws Exception {
 
   }
@@ -375,6 +429,7 @@ public abstract class AbstractService implements Service {
    * from the state change events of all services in the JVM
    * @param l listener
    */
+  // todo: 九师兄  注册全局的监听JVM所有服务状态变更的监听器。注意和前面的实例监听器区分
   public static void registerGlobalListener(ServiceStateChangeListener l) {
     globalListeners.add(l);
   }
@@ -384,6 +439,7 @@ public abstract class AbstractService implements Service {
    * @param l listener to unregister
    * @return true if the listener was found (and then deleted)
    */
+  // todo: 九师兄 注销一个全局监听器，当找到时就返回true，然后注销
   public static boolean unregisterGlobalListener(ServiceStateChangeListener l) {
     return globalListeners.remove(l);
   }
@@ -391,6 +447,7 @@ public abstract class AbstractService implements Service {
   /**
    * Package-scoped method for testing -resets the global listener list
    */
+  // todo: 九师兄  Package-scoped 方法，测试用：重置全局监听器列表
   @VisibleForTesting
   static void resetGlobalListeners() {
     globalListeners.reset();
@@ -415,6 +472,7 @@ public abstract class AbstractService implements Service {
    * Notify local and global listeners of state changes.
    * Exceptions raised by listeners are NOT passed up.
    */
+  // todo: 九师兄  将状态变更通知本地和全局监听器。通知监听器时发生的异常不允许向上传递。
   private void notifyListeners() {
     try {
       listeners.notifyListeners(this);
@@ -427,6 +485,7 @@ public abstract class AbstractService implements Service {
   /**
    * Add a state change event to the lifecycle history
    */
+  // 新增一个状态变更事件到生命周期历史中
   private void recordLifecycleEvent() {
     LifecycleEvent event = new LifecycleEvent();
     event.time = System.currentTimeMillis();
@@ -434,6 +493,7 @@ public abstract class AbstractService implements Service {
     lifecycleHistory.add(event);
   }
 
+  // todo: 九师兄  重写Service中的该方法，返回生命周期历史组成的list
   @Override
   public synchronized List<LifecycleEvent> getLifecycleHistory() {
     return new ArrayList<LifecycleEvent>(lifecycleHistory);
@@ -446,6 +506,8 @@ public abstract class AbstractService implements Service {
    * @return the original state
    * it wasn't already in that state, and the state model permits state re-entrancy.
    */
+  // 进入指定状态，并会调用recordLifecycleEvent记录转移事件。
+  // 返回之前的状态
   private STATE enterState(STATE newState) {
     assert stateModel != null : "null state in " + name + " " + this.getClass();
     STATE oldState = stateModel.enterState(newState);

@@ -19,6 +19,10 @@ package org.apache.hadoop.yarn.server.resourcemanager.recovery;
 
 import org.apache.hadoop.yarn.server.resourcemanager.recovery.RMStateStore.RMState;
 
+/**
+ *todo: 8/6/22 10:11 PM 九师兄
+ * 这个类很简单，就只有一个recover方法
+ **/
 public interface Recoverable {
   public void recover(RMState state) throws Exception;
 }

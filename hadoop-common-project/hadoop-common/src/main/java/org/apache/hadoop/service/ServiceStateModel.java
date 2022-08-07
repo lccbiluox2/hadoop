@@ -23,6 +23,8 @@ import org.apache.hadoop.classification.InterfaceStability.Evolving;
 
 /**
  * Implements the service state model.
+ *
+ * // 注释一句话，实现服务类的状态模型
  */
 @Public
 @Evolving
@@ -32,6 +34,7 @@ public class ServiceStateModel {
    * Map of all valid state transitions
    * [current] [proposed1, proposed2, ...]
    */
+  // todo: 九师兄  这是一个状态转移矩阵，为true代表左侧的状态能往右边对应的那一列代表的状态转移。
   private static final boolean[][] statemap =
     {
       //                uninited inited started stopped
@@ -44,17 +47,20 @@ public class ServiceStateModel {
   /**
    * The state of the service
    */
+  // todo: 九师兄  一个保证对多线程可见性的state量
   private volatile Service.STATE state;
 
   /**
    * The name of the service: used in exceptions
    */
+  // todo: 九师兄  服务名称
   private String name;
 
   /**
    * Create the service state model in the {@link Service.STATE#NOTINITED}
    * state.
    */
+  // todo: 九师兄  构造时初始化状态为 NOINITED
   public ServiceStateModel(String name) {
     this(name, Service.STATE.NOTINITED);
   }
@@ -91,6 +97,7 @@ public class ServiceStateModel {
    * @throws ServiceStateException if the service state is different from
    * the desired state
    */
+  // todo: 九师兄  验证当前状态是否为期望状态，不是就抛异常
   public void ensureCurrentState(Service.STATE expectedState) {
     if (state != expectedState) {
       throw new ServiceStateException(name+ ": for this operation, the " +
@@ -107,6 +114,7 @@ public class ServiceStateModel {
    * @return the original state
    * @throws ServiceStateException if the transition is not permitted
    */
+  // todo: 九师兄  线程安全的尝试进入提议的状态，不合法就抛异常，转移成功后返回旧状态
   public synchronized Service.STATE enterState(Service.STATE proposed) {
     checkStateTransition(name, state, proposed);
     Service.STATE oldState = state;
@@ -122,6 +130,7 @@ public class ServiceStateModel {
    * @param state current state
    * @param proposed proposed new state
    */
+  // todo: 九师兄  检查状态转移是否合法，不合法就抛异常
   public static void checkStateTransition(String name,
                                           Service.STATE state,
                                           Service.STATE proposed) {
@@ -143,6 +152,7 @@ public class ServiceStateModel {
    * @param proposed proposed new state
    * @return true if the transition to a new state is valid
    */
+  // todo: 九师兄  通过前面提到的矩阵来返回转移合法性判断
   public static boolean isValidStateTransition(Service.STATE current,
                                                Service.STATE proposed) {
     boolean[] row = statemap[current.getValue()];
@@ -153,6 +163,7 @@ public class ServiceStateModel {
    * return the state text as the toString() value
    * @return the current state's description
    */
+  // todo: 九师兄  重写了toString来展示当前服务名和状态
   @Override
   public String toString() {
     return (name.isEmpty() ? "" : ((name) + ": "))

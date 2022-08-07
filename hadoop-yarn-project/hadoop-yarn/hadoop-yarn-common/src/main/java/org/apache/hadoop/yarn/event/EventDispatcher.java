@@ -45,10 +45,14 @@ public class EventDispatcher<T extends Event> extends
     AbstractService implements EventHandler<T> {
 
   private final EventHandler<T> handler;
+  // todo: 九师兄  他也有一个事件阻塞队列
   private final BlockingQueue<T> eventQueue =
       new LinkedBlockingDeque<>();
+  // todo: 九师兄  处理事件的队列
   private final Thread eventProcessor;
+  // 线程应该停止与否的标志
   private volatile boolean stopped = false;
+  // 在执行事件过程中如果遇到异常是否应该导致程序退出
   private boolean shouldExitOnError = true;
   private EventTypeMetrics metrics;
 
@@ -59,6 +63,10 @@ public class EventDispatcher<T extends Event> extends
 
   private Clock clock = new MonotonicClock();
 
+  /**
+   *todo: 8/7/22 10:20 AM 九师兄
+   * 处理事件的线程，跟前面的 createThread 线程类似
+   **/
   private final class EventProcessor implements Runnable {
     @Override
     public void run() {
@@ -76,6 +84,7 @@ public class EventDispatcher<T extends Event> extends
         try {
           if (metrics != null) {
             long startTime = clock.getTime();
+            // 注意这里，把事件直接交给了我们的主角-调度器！！
             handler.handle(event);
             metrics.increment(event.getType(),
                 clock.getTime() - startTime);
@@ -139,6 +148,7 @@ public class EventDispatcher<T extends Event> extends
         LOG.info("Very low remaining capacity on " + getName() + "" +
             "event queue: " + remCapacity);
       }
+      // todo: 九师兄  处理事件就是放入自己的阻塞队列，让处理线程去处理
       this.eventQueue.put(event);
     } catch (InterruptedException e) {
       LOG.info("Interrupted. Trying to exit gracefully.");

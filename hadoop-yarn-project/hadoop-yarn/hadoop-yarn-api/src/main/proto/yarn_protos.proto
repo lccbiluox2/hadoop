@@ -147,12 +147,12 @@ enum ContainerSubStateProto {
 }
 
 message ContainerProto {
-  optional ContainerIdProto id = 1;
-  optional NodeIdProto nodeId = 2;
-  optional string node_http_address = 3;
-  optional ResourceProto resource = 4;
-  optional PriorityProto priority = 5;
-  optional hadoop.common.TokenProto container_token = 6;
+  optional ContainerIdProto id = 1; // Container id
+  optional NodeIdProto nodeId = 2; // Container所在NM id
+  optional string node_http_address = 3; // Container所在NM地址
+  optional ResourceProto resource = 4;// Container资源量
+  optional PriorityProto priority = 5;// Container优先级
+  optional hadoop.common.TokenProto container_token = 6;  //Container用于安全认证的token
   optional ExecutionTypeProto execution_type = 7 [default = GUARANTEED];
   optional int64 allocation_request_id = 8 [default = -1];
   optional int32 version = 9 [default = 0];
@@ -435,11 +435,11 @@ enum ExecutionTypeProto {
 ////// From AM_RM_Protocol /////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 message ResourceRequestProto {
-  optional PriorityProto priority = 1;
-  optional string resource_name = 2;
-  optional ResourceProto capability = 3;
-  optional int32 num_containers = 4;
-  optional bool relax_locality = 5 [default = true];
+  optional PriorityProto priority = 1; // 资源优先级
+  optional string resource_name = 2;// 资源名称（资源本地化信息，期望资源所在的node_host、rack名称等）
+  optional ResourceProto capability = 3; // 资源量（仅支持CPU和内存两种资源）
+  optional int32 num_containers = 4; // 满足以上条件的资源个数
+  optional bool relax_locality = 5 [default = true]; //是否支持本地性松弛 意思就是程序不是要本地性的吗，如果在本地申请不到，可以申请本机架的，如果机架也没有申请其他的
   optional string node_label_expression = 6;
   optional ExecutionTypeRequestProto execution_type_request = 7;
   optional int64 allocation_request_id = 8 [default = -1];

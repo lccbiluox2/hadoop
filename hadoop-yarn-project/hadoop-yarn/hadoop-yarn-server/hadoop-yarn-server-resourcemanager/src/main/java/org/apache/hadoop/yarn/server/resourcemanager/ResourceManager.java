@@ -177,6 +177,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *    管理命令(比如杀死Contanier)等。
  *  4.资源管理与调度，接收来自ApplicationMaster的资源申请请求，并为之分配资源（核心）。
  *
+ * ResourceManager是一个拥有一系列组件的主类，他拥有所有资源。
  */
 @SuppressWarnings("unchecked")
 public class ResourceManager extends CompositeService
@@ -293,7 +294,7 @@ public class ResourceManager extends CompositeService
     this.conf = conf;
     UserGroupInformation.setConfiguration(conf);
 
-    // 生成一个上下文对象，主要用来存储各种信息
+    // 生成一个上下文对象，主要用来存储各种信息，存有RM的许多重要成员
     this.rmContext = new RMContextImpl();
     // 这里把自己设置进去
     rmContext.setResourceManager(this);
@@ -305,6 +306,7 @@ public class ResourceManager extends CompositeService
     // Set HA configuration should be done before login
     // 设置时候是ha启动
     this.rmContext.setHAEnabled(HAUtil.isHAEnabled(this.conf));
+    //如果确认配置了RM高可用，就需要验证现有配置的参数是否支持高可用，验证不通过就抛出异常
     if (this.rmContext.isHAEnabled()) {
       HAUtil.verifyAndSetConfiguration(this.conf);
     }
@@ -334,6 +336,7 @@ public class ResourceManager extends CompositeService
     // if they exist
     // 是使用加载的core-site.xml刷新superusergroupsconfiguration还是使用RM特定的配置
     // 来首先覆盖常见的配置
+    // 从已加载的 core-site.xml文件中获取 超级用户<->组 的映射表
     RMServerUtils.processRMProxyUsersConf(conf);
     ProxyUsers.refreshSuperUserGroupsConfiguration(this.conf);
 
@@ -346,7 +349,9 @@ public class ResourceManager extends CompositeService
 
     // todo: 这个很重要
     // register the handlers for all AlwaysOn services using setupDispatcher().
-    // 使用setupDispatcher()注册所有AlwaysOn服务的处理程序。
+    // todo: 九师兄  使用setupDispatcher()注册所有AlwaysOn服务的处理程序。
+    //   注册一个异步Dispatcher，有一个单独的线程来处理所有持续开启的服务的各种EventType。
+    //   Yarn中采用了事件驱动的编程模型,后面很多不同的事件都用了这个dispatcher来处理。后面会详细说
     rmDispatcher = setupDispatcher();
     // 后面你会遇到很多这样的函数，添加service
     addIfService(rmDispatcher);
@@ -361,7 +366,10 @@ public class ResourceManager extends CompositeService
     // 下面的服务的顺序不应该改变，因为服务的启动顺序是相同的。因为选举人服务需要初始化和启动
     // 管理服务，所以我们首先添加管理服务，然后添加选举人服务
 
-    // 创建 AdminService 为管理员提供了一套独立的服务接口
+    // todo: 九师兄  创建 AdminService 为管理员提供了一套独立的服务接口
+    //   注册管理员服务
+    //   AdminService为管理员提供了一套独立的服务接口，以防止大量的普通用户的请求使得管理员发送的管理命令饿死。
+    //   管理员可以通过这些接口命令管理集群，比如动态更新节点列表，更新ACL列表，更新队列信息等
     adminService = createAdminService();
     addService(adminService);
     rmContext.setRMAdminService(adminService);
@@ -386,7 +394,7 @@ public class ResourceManager extends CompositeService
     }
 
     // 创建 RMActiveServices 这里会启动很多很多组件
-    // 10:06 AM  九师兄 只有active的service才会执行的方法
+    // todo: 九师兄  10:06 AM  九师兄 只有active的service才会执行的方法
     createAndInitActiveServices(false);
 
     // 获取yarn web 地址
@@ -419,7 +427,7 @@ public class ResourceManager extends CompositeService
     // 注册指标
     registerMXBean();
 
-    // todo: 调用父类
+    // todo: 接着调用父类CompositeService的serviceInit方法，将他管理的服务全部初始化
     super.serviceInit(this.conf);
   }
 
@@ -731,10 +739,16 @@ public class ResourceManager extends CompositeService
   /**
    * RMActiveServices handles all the Active services in the RM.
    */
+  /**
+   *todo: 8/7/22 10:13 AM 九师兄
+   * 这个RMActiveServices是继承自CompositeService，那么他应该也是组合了多个Service
+   * RMActiveServices 处理所有RM中的活跃的(Active)服务
+   */
   @Private
   public class RMActiveServices extends CompositeService {
 
     private DelegationTokenRenewer delegationTokenRenewer;
+    // todo: 九师兄  调度器对应的EventHandler
     private EventHandler<SchedulerEvent> schedulerDispatcher;
     private ApplicationMasterLauncher applicationMasterLauncher;
     private ContainerAllocationExpirer containerAllocationExpirer;
@@ -865,6 +879,7 @@ public class ResourceManager extends CompositeService
 
       // Register event handler for NodesListManager
       // NodeManager 列表管理器，专门处理节点可用于不可用事件
+      // Node列表管理器，还用rmDispatcher注册了一个NodesListManagerEventType事件处理(节点可用\不可用)
       nodesListManager = new NodesListManager(rmContext);
       rmDispatcher.register(NodesListManagerEventType.class, nodesListManager);
       addService(nodesListManager);
@@ -888,11 +903,11 @@ public class ResourceManager extends CompositeService
       rmDispatcher.register(RMAppEventType.class,
               new ApplicationEventDispatcher(rmContext));
 
-      // Register event handler for RmAppAttemptEvents
+      // Register event handler for RmAppAttemptEvents（App尝试事件）
       rmDispatcher.register(RMAppAttemptEventType.class,
               new ApplicationAttemptEventDispatcher(rmContext));
 
-      // Register event handler for RmNodes
+      // Register event handler for RmNodes（RM节点事件）
       rmDispatcher.register(
               RMNodeEventType.class, new NodeEventDispatcher(rmContext));
 
@@ -900,11 +915,20 @@ public class ResourceManager extends CompositeService
       nmLivelinessMonitor = createNMLivelinessMonitor();
       addService(nmLivelinessMonitor);
 
-      // 处理 NodeManager的注册和心跳的 ResourceTrackerService 服务
+      //
+      /**
+       *todo: 8/7/22 10:15 AM 九师兄
+       * 处理 NodeManager的注册和心跳的 ResourceTrackerService 服务
+       * 创建资源管理服务。处理来自NodeManager的请求，主要包括两种请求：注册和心跳.
+       * 其中，注册是NodeManager启动时发生的行为，请求包中包含节点ID，可用的资源上限等信息;
+       * 而心跳是周期性行为，包含各个Container运行状态，运行的Application列表、节点健康状况（可通过一个脚本设置），
+       * 以上请求调用通过hadoop自己实现的一套RPC协议实现，具体看看YarnRPC。
+       */
       resourceTracker = createResourceTrackerService();
       addService(resourceTracker);
       rmContext.setResourceTrackerService(resourceTracker);
 
+      // 监控jvm运行状况，异常就记录日志
       MetricsSystem ms = DefaultMetricsSystem.initialize("ResourceManager");
       if (fromActive) {
         JvmMetrics.reattach(ms, jvmMetrics);
@@ -931,14 +955,23 @@ public class ResourceManager extends CompositeService
         }
       }
 
-      //存在于RM中用来给ApplicationMaster 提供服务的ApplicationMasterprotoco7 通信协议服务组件
+      /**
+       *todo: 8/7/22 10:16 AM 九师兄
+       * 存在于RM中用来给ApplicationMaster 提供服务的ApplicationMasterprotoco7 通信协议服务组件
+       * 用于对所有提交的ApplicationMaster进行管理。
+       * 该组件响应所有来自AM的请求，实现了ApplicationMasterProtocol协议，这个协议是AM与RM通信的唯一协议。
+       * 主要包括以下任务：
+       * 注册新的AM、来自任意正在结束的AM的终止/取消注册请求、认证来自不同AM的所有请求，
+       * 确保合法的AM发送的请求传递给RM中的应用程序对象、获取来自所有运行AM的Container的分配和释放请求、异步的转发给Yarn调度器。
+       * ApplicaitonMaster Service确保了任意时间点、任意AM只有一个线程可以发送请求给RM，因为在RM上所有来自AM的RPC请求都串行化了。
+       **/
       masterService = createApplicationMasterService();
       createAndRegisterOpportunisticDispatcher(masterService);
       addService(masterService) ;
       rmContext.setApplicationMasterService(masterService);
 
 
-      // application 权限
+      // application 权限，app访问控制
       applicationACLsManager = new ApplicationACLsManager(conf);
 
       // 队列权限管理
@@ -950,11 +983,13 @@ public class ResourceManager extends CompositeService
       rmDispatcher.register(RMAppManagerEventType.class, rmAppManager);
 
       // 存在于 RM中用来给 Jobclient 提供服务的Applicationclientprotoco1通信协议服务组件
+      // 负责处理面向客户端使用的接口，内部实现了 Client和RM之间通讯的ApplicationClientProtocol协议
       clientRM = createClientRMService();
       addService(clientRM);
       rmContext.setClientRMService(clientRM);
 
       // ApplicationMaster 启动器服务初始化， 负责启动和停止ApplicationMaster
+      // 负责启动和停止AM
       applicationMasterLauncher = createAMLauncher();
       rmDispatcher.register(AMLauncherEventType.class,
               applicationMasterLauncher);
@@ -984,6 +1019,7 @@ public class ResourceManager extends CompositeService
       addService(proxyCAManager);
       rmContext.setProxyCAManager(proxyCAManager);
 
+      // 用JMX接口展现NodeManager节点状态信息
       rmnmInfo = new RMNMInfo(rmContext, scheduler);
 
       // YARN web API 服务初始化
@@ -1083,6 +1119,7 @@ public class ResourceManager extends CompositeService
     }
   }
 
+  // todo: 九师兄  这个处理器实现了接口EventHandler的唯一方法handle，定义了该事件处理逻辑
   @Private
   private class RMFatalEventDispatcher implements EventHandler<RMFatalEvent> {
     @Override
@@ -1124,12 +1161,18 @@ public class ResourceManager extends CompositeService
           break;
         default:
           LOG.error(FATAL, "Shutting down the resource manager.");
+          // 简单粗暴，退出。我们就不再细看了
           ExitUtil.terminate(1, event.getExplanation());
         }
       }
     }
   }
 
+  /**
+   *todo: 8/7/22 10:18 AM 九师兄
+   * 他继承了AbstractService，这个我们已经很熟悉了
+   * 实现了EventHandler，意味着他也是一个事件处理类，有实现handle方法
+   **/
   @Private
   private class SchedulerEventDispatcher extends
       EventDispatcher<SchedulerEvent> {
@@ -1764,6 +1807,11 @@ public class ResourceManager extends CompositeService
     return this.webApp;
   }
 
+  /**
+   *todo: 8/6/22 10:11 PM 九师兄
+   * 这个方法里分别恢复了RMdelegationTokenSecretManager、AMRMTokenSecretManager以及所有的app，
+   * 最后记录调度器的恢复过程的开始和结束时间。
+   **/
   @Override
   public void recover(RMState state) throws Exception {
     // recover RMdelegationTokenSecretManager
@@ -1785,10 +1833,17 @@ public class ResourceManager extends CompositeService
     setSchedulerRecoveryStartAndWaitTime(state, conf);
   }
 
+  /**
+   *todo: 8/7/22 10:07 AM 九师兄
+   * main入口方法
+   **/
   public static void main(String argv[]) {
+    //设定主线程出现未定义捕获处理的异常时的handler
     Thread.setDefaultUncaughtExceptionHandler(new YarnUncaughtExceptionHandler());
+    // 打印启动日志
     StringUtils.startupShutdownMessage(ResourceManager.class, argv, LOG);
     try {
+      // todo: 九师兄 初始化一个Yarn配置类实例
       Configuration conf = new YarnConfiguration();
       GenericOptionsParser hParser = new GenericOptionsParser(conf, argv);
       argv = hParser.getRemainingArgs();
@@ -1806,7 +1861,9 @@ public class ResourceManager extends CompositeService
         }
       } else {
         // 9:54 AM  九师兄  ResourceManager 初始化
+        // todo: 九师兄  我们的启动脚本参数会走这个分支
         ResourceManager resourceManager = new ResourceManager();
+        //把RM的CompositeService的shutDownHook添加到一个统一的ShutdownHookManager，后面有专门章节讲 ShutdownHookManager 的机制
         ShutdownHookManager.get().addShutdownHook(
           new CompositeServiceShutdownHook(resourceManager),
           SHUTDOWN_HOOK_PRIORITY);
