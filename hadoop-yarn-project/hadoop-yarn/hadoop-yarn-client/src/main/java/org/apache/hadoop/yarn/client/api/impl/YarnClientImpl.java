@@ -294,17 +294,23 @@ public class YarnClientImpl extends YarnClient {
       throws YarnException, IOException {
     GetNewApplicationRequest request =
         Records.newRecord(GetNewApplicationRequest.class);
+    // 这里的rmClient是关键
     return rmClient.getNewApplication(request);
   }
 
   @Override
   public YarnClientApplication createApplication()
       throws YarnException, IOException {
+    // 生成一个ApplicationSubmissionContextPBImpl实例
+    // ApplicationSubmissionContext 表示所有RM为应用程序启动AM所需的所有信息
     ApplicationSubmissionContext context = Records.newRecord
         (ApplicationSubmissionContext.class);
+    // 获得一个新应用程序的返回信息
     GetNewApplicationResponse newApp = getNewApplication();
     ApplicationId appId = newApp.getApplicationId();
+    // 将appId保存到ApplicationSubmissionContext中
     context.setApplicationId(appId);
+    // 拿到appId后实例化一个封装了applictionResponse和context的对象
     return new YarnClientApplication(newApp, context);
   }
 

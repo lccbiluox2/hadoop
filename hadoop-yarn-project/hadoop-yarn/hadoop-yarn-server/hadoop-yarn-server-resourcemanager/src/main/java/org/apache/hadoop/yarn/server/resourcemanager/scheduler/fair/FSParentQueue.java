@@ -194,6 +194,7 @@ public class FSParentQueue extends FSQueue {
     Resource assigned = Resources.none();
 
     // If this queue is over its limit, reject
+    // todo: 九师兄  如果不允许分配比如超出配额限制就直接返回了
     if (!assignContainerPreCheck(node)) {
       if (LOG.isDebugEnabled()) {
         LOG.debug("Assign container precheck for queue " + getName() +
@@ -211,14 +212,34 @@ public class FSParentQueue extends FSQueue {
     // empty before removal. Assigning an application to a queue and removal of
     // that queue both need the scheduler lock.
     TreeSet<FSQueue> sortedChildQueues = new TreeSet<>(policy.getComparator());
+    // todo: 九师兄  在对子队列排序时需要持有写锁
     readLock.lock();
     try {
       if (LOG.isDebugEnabled()) {
         LOG.debug("Node " + node.getNodeName() + " offered to parent queue: " +
             getName() + " visiting " + childQueues.size() + " children");
       }
+      // FairSharePolicy分配策略：
+      // 通过加权公平共享份额来实现调度比较。以外，低于其最低份额的调度计划比刚好达到最低份额的调度计划优先级更高。
+      // 在比较低于最小份额的那些调度计划时，参考的标准是低于最小份额的比例。
+      // 比如，作业A具有10个任务的最小份额中的8个，而作业B具有100个最小份额中的50个
+      // 则接下来调度作业B，因为B拥有50％的最小份额 而A处于占80％
+
+      // 在比较超过最小份额的调度计划时，参考的标准是 运行中任务数/权重
+      // 如果所有权重都相等，就把槽位给拥有最少任务数量的作业
+      // 否则，拥有更高权重的作业分配更多
+
+      // 对子队列列表按FairSharePolicy来排序
+
       sortedChildQueues.addAll(childQueues);
+
+      // 在排序和遍历排序后的子队列列表间隙会释放锁
+      // 那么这个队列列表在以下情况可能被修改：
+      // 1.将一个子队列添加到子队列列表末尾，那么显然这不会影响container分配
+      // 2.移除一个子队列，这样可能还挺好，我们就不分配资源给很快被移除的队列
+
       for (FSQueue child : sortedChildQueues) {
+        // 这里有可能是FSParentQueue FSLeafQueue FSAppAttempt，都实现自Schedulable接口
         assigned = child.assignContainer(node);
         if (!Resources.equals(assigned, Resources.none())) {
           break;

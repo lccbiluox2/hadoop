@@ -1328,6 +1328,7 @@ public class ResourceManager extends CompositeService
     @Override
     public void handle(RMAppEvent event) {
       ApplicationId appID = event.getApplicationId();
+      // todo: 九师兄  从RM上下文中获取该app
       RMApp rmApp = this.rmContext.getRMApps().get(appID);
       if (rmApp != null) {
         try {
@@ -1359,6 +1360,7 @@ public class ResourceManager extends CompositeService
         RMAppAttempt rmAppAttempt = rmApp.getRMAppAttempt(appAttemptId);
         if (rmAppAttempt != null) {
           try {
+            // todo: 九师兄  交给RMAppAttemptImpl处理该ATTEMPT_ADDED事件
             rmAppAttempt.handle(event);
           } catch (Throwable t) {
             LOG.error("Error in handling event type " + event.getType()

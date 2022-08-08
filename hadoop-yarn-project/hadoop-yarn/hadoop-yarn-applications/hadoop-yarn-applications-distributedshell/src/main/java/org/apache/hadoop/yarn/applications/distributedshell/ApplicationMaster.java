@@ -1193,6 +1193,7 @@ public class ApplicationMaster {
                   + ", containerResourceVirtualCores"
                   + allocatedContainer.getResource().getVirtualCores());
 
+          // todo: 九师兄  创建运行 Container 的 LaunchContainerRunnable 线程
           Thread launchThread =
               createLaunchContainerThread(allocatedContainer, yarnShellId);
 
@@ -1201,6 +1202,7 @@ public class ApplicationMaster {
           // as all containers may not be allocated at one go.
           launchThreads.add(launchThread);
           launchedContainers.add(allocatedContainer.getId());
+          // todo: 九师兄  启动 LaunchContainerRunnable 线程
           launchThread.start();
 
           // Remove the corresponding request
@@ -1401,6 +1403,12 @@ public class ApplicationMaster {
   /**
    * Thread to connect to the {@link ContainerManagementProtocol} and launch the container
    * that will execute the shell command.
+   *
+   * LaunchContainerRunnable 是 ApplicationMaster 类的内部类，继承自 Runnable 接口，
+   * 通过该类的 run() 方法，可以知道该类主要做了两件事：
+   *
+   * 1. 初始化 Contianer 的本地资源，并构建 Container 的启动脚本
+   * 2. 调用 NMClientAsync#startContainerAsync() api 接口启动 Container。
    */
   private class LaunchContainerRunnable implements Runnable {
 
@@ -1561,6 +1569,7 @@ public class ApplicationMaster {
         localResources, myShellEnv, commands, null, allTokens.duplicate(),
           null, containerRetryContext);
       containerListener.addContainer(container.getId(), container);
+      // todo: 九师兄  2. 重点：通过 NMClientAsync api 启动分配出来的 Container
       nmClientAsync.startContainerAsync(container, ctx);
     }
   }

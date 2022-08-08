@@ -240,7 +240,11 @@ public abstract class RMStateStore extends AbstractService {
           appState.getApplicationSubmissionContext().getApplicationId();
       LOG.info("Storing info for app: " + appId);
       try {
+        // todo: 九师兄  这一步就是实际持久化appState信息了
         store.storeApplicationStateInternal(appId, appState);
+        // todo: 九师兄 这里组装了一个RMAppEventType.APP_NEW_SAVED
+        // 这个方法的作用是通知应用程序，新的app已经持久化（存储或更新）了
+        // 会发送一个RMAppEvent.APP_NEW_SAVED事件给AsyncDispatcher.GenericEventHandler的handle方法
         store.notifyApplication(
             new RMAppEvent(appId, RMAppEventType.APP_NEW_SAVED));
       } catch (Exception e) {
@@ -929,16 +933,23 @@ public abstract class RMStateStore extends AbstractService {
    * ResourceManager services use this to store the application's state
    * This does not block the dispatcher threads
    * RMAppStoredEvent will be sent on completion to notify the RMApp
+   *
+   * 非阻塞的API
+   * RM服务使用这个方法来存储app状态信息
+   * 他不会导致调用的线程（dispatcher）阻塞
+   * RMAppStoredEvent将在完成时发送以通知RMApp
    */
   @SuppressWarnings("unchecked")
   public void storeNewApplication(RMApp app) {
     ApplicationSubmissionContext context = app
                                             .getApplicationSubmissionContext();
     assert context instanceof ApplicationSubmissionContextPBImpl;
+    // 构建app状态数据示例，他包含了一个app所有需要被持久化的状态数据
     ApplicationStateData appState =
         ApplicationStateData.newInstance(app.getSubmitTime(),
             app.getStartTime(), context, app.getUser(), app.getCallerContext());
     appState.setApplicationTimeouts(app.getApplicationTimeouts());
+    // 这里的eventHandler是AsyncDispatcher.GenericEventHandler，把STORE_APP事件放入eventQueue
     getRMStateStoreEventHandler().handle(new RMStateStoreAppEvent(appState));
   }
 

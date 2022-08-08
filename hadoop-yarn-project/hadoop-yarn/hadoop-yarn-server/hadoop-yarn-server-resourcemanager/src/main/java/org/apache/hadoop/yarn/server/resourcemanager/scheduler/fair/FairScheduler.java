@@ -589,11 +589,13 @@ public class FairScheduler extends
       boolean isAttemptRecovering) {
     writeLock.lock();
     try {
+      // 注意，我们在前面FairScheduler接收到APP_ADDED事件的时候已经放入了该app
       SchedulerApplication<FSAppAttempt> application = applications.get(
           applicationAttemptId.getApplicationId());
       String user = application.getUser();
       FSLeafQueue queue = (FSLeafQueue) application.getQueue();
 
+      //FSAppAttemp代表的是从FairScheduler的角度来表示app尝试
       FSAppAttempt attempt = new FSAppAttempt(this, applicationAttemptId, user,
           queue, new ActiveUsersManager(getRootQueueMetrics()), rmContext);
       if (transferStateFromPreviousAttempt) {
@@ -602,14 +604,20 @@ public class FairScheduler extends
       }
       application.setCurrentAppAttempt(attempt);
 
+      // 检查该app是否超出资源配额
       boolean runnable = maxRunningEnforcer.canAppBeRunnable(queue, attempt);
+      // 根据runnable情况放入FSLeafQueue的runnableApps或者nonRunnableApps
       queue.addApp(attempt, runnable);
       if (runnable) {
+        // 将该任务所属父队列runnableApps数量增加1;该应用提交用户对应的应用数加1
+        // 这样做的目的是维护最大运行应用数的限制
         maxRunningEnforcer.trackRunnableApp(attempt);
       } else{
+        // 不可运行的应用也要登记，这样的话当该应用不超过应用最大可运行数时就能变为runnable
         maxRunningEnforcer.trackNonRunnableApp(attempt);
       }
 
+      // 记录队列、用户指标
       queue.getMetrics().submitAppAttempt(user);
 
       LOG.info("Added Application Attempt " + applicationAttemptId
@@ -619,6 +627,8 @@ public class FairScheduler extends
         LOG.debug("{} is recovering. Skipping notifying ATTEMPT_ADDED",
             applicationAttemptId);
       } else{
+        // 熟悉的一句话，向AsyncDispatcher的GenericEventHandler发送RMAppAttemptEventType.ATTEMPT_ADDED事件
+        // 注意和前文的来自RMAppAttempt的SchedulerEventType.APP_ATTEMPT_ADDED区分
         rmContext.getDispatcher().getEventHandler().handle(
             new RMAppAttemptEvent(applicationAttemptId,
                 RMAppAttemptEventType.ATTEMPT_ADDED));
@@ -866,6 +876,7 @@ public class FairScheduler extends
       List<ContainerId> release, List<String> blacklistAdditions,
       List<String> blacklistRemovals, ContainerUpdates updateRequests) {
     // Make sure this application exists
+    // 确保app存在
     FSAppAttempt application = getSchedulerApp(appAttemptId);
     if (application == null) {
       LOG.error("Calling allocate on removed or non existent application " +
@@ -886,6 +897,7 @@ public class FairScheduler extends
 
     ApplicationId applicationId = application.getApplicationId();
     FSLeafQueue queue = application.getQueue();
+    // 对资源申请的请求进行合理性检验
     List<MaxResourceValidationResult> invalidAsks =
             validateResourceRequests(ask, queue);
 
@@ -914,6 +926,7 @@ public class FairScheduler extends
     application.recordContainerRequestTime(getClock().getTime());
 
     // Release containers
+    // 释放 containers
     releaseContainers(release, application);
 
     ReentrantReadWriteLock.WriteLock lock = application.getWriteLock();
@@ -925,9 +938,11 @@ public class FairScheduler extends
               "allocate: pre-update" + " applicationAttemptId=" + appAttemptId
                   + " application=" + application.getApplicationId());
         }
+        // debug时打印申请资源详情
         application.showRequests();
 
         // Update application requests
+        // 在AppSchedulingInfo中更新应用的container资源消耗情况
         application.updateResourceRequests(ask);
 
         // TODO, handle SchedulingRequest
@@ -1000,14 +1015,22 @@ public class FairScheduler extends
     return validationResults;
   }
 
+  /**
+   *todo: 8/7/22 11:48 AM 九师兄
+   * 处理从node来的update事件
+   **/
   @Override
   protected void nodeUpdate(RMNode nm) {
     writeLock.lock();
     try {
       long start = getClock().getTime();
+      // todo: 九师兄 重点
       super.nodeUpdate(nm);
 
+      // 根据NM的NodeId 取出FSSchedulerNode
+      // FSSchedulerNode是配置了FairScheuler策略时 继承自SchedulerNode，从调度器角度表示的一个节点
       FSSchedulerNode fsNode = getFSSchedulerNode(nm.getNodeID());
+      // todo: 九师兄 尝试调度
       attemptScheduling(fsNode);
 
       long duration = getClock().getTime() - start;
@@ -1065,6 +1088,10 @@ public class FairScheduler extends
     }
   }
 
+  /**
+   *todo: 8/7/22 11:59 AM 九师兄
+   *  // 判断是否应该继续调度 比如未开启yarn.scheduler.fair.assignmultiple
+   **/
   private boolean shouldContinueAssigning(int containers,
       Resource maxResourcesToAssign, Resource assignedResource) {
     if (!assignMultiple) {
@@ -1130,6 +1157,21 @@ public class FairScheduler extends
       // We have to satisfy these first to avoid cases, when we preempt
       // a container for A from B and C gets the preempted containers,
       // when C does not qualify for preemption itself.
+      /**
+       *todo: 8/7/22 11:50 AM 九师兄
+       * 分配新的容器……
+       *  1. 确保容器被分配给被抢占的应用程序
+       *  2. 检查是否有预约申请
+       *  3.如果没有预订，请安排时间
+       *
+       * todo:
+       *  我们必须首先满足这些条件，以避免这样的情况:
+       *  当我们从B中抢占一个容器，然后C获得被抢占的容器，而C本身不符合被抢占的条件。
+       *
+       * 分配新的conatiner
+       *  1. 检查app预留情况
+       *  2. 如果没有预留就开始地调度
+       **/
       assignPreemptedContainers(node);
       FSAppAttempt reservedAppSchedulable = node.getReservedAppSchedulable();
       boolean validReservation = false;
@@ -1138,12 +1180,17 @@ public class FairScheduler extends
       }
       if (!validReservation) {
         // No reservation, schedule at queue which is farthest below fair share
+        // 没有预留时，
         int assignedContainers = 0;
+        // 已分配资源，初始为空资源
         Resource assignedResource = Resources.clone(Resources.none());
+        // 得到当前可分配的最大资源量
         Resource maxResourcesToAssign = Resources.multiply(
             node.getUnallocatedResource(), 0.5f);
 
         while (node.getReservedContainer() == null) {
+          // 这一步很关键，开始尝试分配该node的container资源
+          // 最后得到是这一次准备分配的资源
           Resource assignment = queueMgr.getRootQueue().assignContainer(node);
 
           if (assignment.equals(Resources.none())) {
@@ -1151,14 +1198,19 @@ public class FairScheduler extends
             break;
           }
 
+          // 分配成功，就增加统计量
           assignedContainers++;
+          // 将此次分配的累加到已分配的资源中
           Resources.addTo(assignedResource, assignment);
+
+          // 分配不成功就退出循环
           if (!shouldContinueAssigning(assignedContainers, maxResourcesToAssign,
               assignedResource)) {
             break;
           }
         }
       }
+      // 更新root队列指标
       updateRootQueueMetrics();
     } finally {
       writeLock.unlock();
@@ -1211,6 +1263,7 @@ public class FairScheduler extends
   @Override
   public void handle(SchedulerEvent event) {
     switch (event.getType()) {
+      // todo: 九师兄 节点加入事件
     case NODE_ADDED:
       if (!(event instanceof NodeAddedSchedulerEvent)) {
         throw new RuntimeException("Unexpected event type: " + event);
@@ -1226,11 +1279,14 @@ public class FairScheduler extends
       NodeRemovedSchedulerEvent nodeRemovedEvent = (NodeRemovedSchedulerEvent)event;
       removeNode(nodeRemovedEvent.getRemovedRMNode());
       break;
+      // todo: 九师兄 节点更新事件
     case NODE_UPDATE:
       if (!(event instanceof NodeUpdateSchedulerEvent)) {
         throw new RuntimeException("Unexpected event type: " + event);
       }
+      // NodeUpdateSchedulerEvent是SchedulerEvent的子类
       NodeUpdateSchedulerEvent nodeUpdatedEvent = (NodeUpdateSchedulerEvent)event;
+      // todo: 九师兄 处理从node来的update事件
       nodeUpdate(nodeUpdatedEvent.getRMNode());
       break;
     case APP_ADDED:
@@ -1413,11 +1469,15 @@ public class FairScheduler extends
   private void initScheduler(Configuration conf) throws IOException {
     writeLock.lock();
     try {
+      // todo: 九师兄 获取公平调度的配置
       this.conf = new FairSchedulerConfiguration(conf);
       validateConf(this.conf);
       authorizer = YarnAuthorizationProvider.getInstance(conf);
+      // todo: 九师兄 获取最小资源分配
       minimumAllocation = super.getMinimumAllocation();
+      // todo: 九师兄 初始化最大容量限制
       initMaximumResourceCapability(super.getMaximumAllocation());
+      // todo: 九师兄 是否增量分配
       incrAllocation = this.conf.getIncrementAllocation();
       updateReservationThreshold();
       continuousSchedulingEnabled = this.conf.isContinuousSchedulingEnabled();
@@ -1448,6 +1508,7 @@ public class FairScheduler extends
       // This stores per-application scheduling information
       this.applications = new ConcurrentHashMap<>();
 
+      // todo: 九师兄 初始化分配配置
       allocConf = new AllocationConfiguration(this);
       queueMgr.initialize();
 
@@ -1457,6 +1518,8 @@ public class FairScheduler extends
             "because it can cause scheduler slowness due to locking issues. " +
             "Schedulers should use assignmultiple as a replacement.");
         // start continuous scheduling thread
+
+        // todo: 九师兄 初始化调度线程
         schedulingThread = new ContinuousSchedulingThread();
         schedulingThread.setName("FairSchedulerContinuousScheduling");
         schedulingThread.setUncaughtExceptionHandler(
@@ -1471,6 +1534,7 @@ public class FairScheduler extends
       writeLock.unlock();
     }
 
+    // todo: 九师兄 重点
     allocsLoader.init(conf);
     allocsLoader.setReloadListener(new AllocationReloadListener());
     // If we fail to load allocations file on initialize, we want to fail
@@ -1518,13 +1582,16 @@ public class FairScheduler extends
 
   @Override
   public void serviceInit(Configuration conf) throws Exception {
+    // 在FS->CS转换时使用。当启用时，后台线程不会启动。这个属性不应该被终端用户使用!
     migration =
         conf.getBoolean(FairSchedulerConfiguration.MIGRATION_MODE, false);
     noTerminalRuleCheck = migration &&
         conf.getBoolean(FairSchedulerConfiguration.NO_TERMINAL_RULE_CHECK,
             false);
 
+    // todo: 九师兄 初始化调取器
     initScheduler(conf);
+    // todo: 九师兄 初始化子service
     super.serviceInit(conf);
 
     if (!migration) {
@@ -1535,6 +1602,7 @@ public class FairScheduler extends
 
   @Override
   public void serviceStart() throws Exception {
+    // todo: 九师兄 启动调度线程
     startSchedulerThreads();
     super.serviceStart();
   }

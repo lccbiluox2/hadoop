@@ -337,10 +337,12 @@ public class ApplicationImpl implements Application {
     @Override
     public void transition(ApplicationImpl app, ApplicationEvent event) {
       ApplicationInitEvent initEvent = (ApplicationInitEvent)event;
+      // 设置 ACL 属性
       app.applicationACLs = initEvent.getApplicationACLs();
       app.aclsManager.addApplication(app.getAppId(), app.applicationACLs);
       // Inform the logAggregator
       app.logAggregationContext = initEvent.getLogAggregationContext();
+      // 向 LogHandler 发送 LogHandlerEventType.APPLICATION_STARTED 事件
       app.dispatcher.getEventHandler().handle(
           new LogHandlerAppStartedEvent(app.appId, app.user,
               app.credentials, app.applicationACLs,

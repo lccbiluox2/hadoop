@@ -220,6 +220,7 @@ public class LogAggregationService extends AbstractService implements
       long recoveredLogInitedTime) {
     ApplicationEvent eventResponse;
     try {
+      // 创建应用程序日志目录、设置目录权限等
       initAppAggregator(appId, user, credentials, appAcls,
           logAggregationContext, recoveredLogInitedTime);
       eventResponse = new ApplicationEvent(appId,
@@ -229,6 +230,7 @@ public class LogAggregationService extends AbstractService implements
       eventResponse = new ApplicationEvent(appId,
           ApplicationEventType.APPLICATION_LOG_HANDLING_FAILED);
     }
+    // todo: 九师兄  向 ApplicationImpl 发送 ApplicationEventType.APPLICATION_LOG_HANDLING_INITED 事件
     this.dispatcher.getEventHandler().handle(eventResponse);
   }
   
@@ -363,6 +365,7 @@ public class LogAggregationService extends AbstractService implements
       case APPLICATION_STARTED:
         LogHandlerAppStartedEvent appStartEvent =
             (LogHandlerAppStartedEvent) event;
+        // todo: 九师兄  事情处理逻辑
         initApp(appStartEvent.getApplicationId(), appStartEvent.getUser(),
             appStartEvent.getCredentials(),
             appStartEvent.getApplicationAcls(),

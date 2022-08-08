@@ -1094,6 +1094,7 @@ public class RMAppAttemptImpl implements RMAppAttempt, Recoverable {
     public RMAppAttemptState transition(RMAppAttemptImpl appAttempt,
         RMAppAttemptEvent event) {
       ApplicationSubmissionContext subCtx = appAttempt.submissionContext;
+      // 该提交必须属于RM管理的才会正常分配资源和启动
       if (!subCtx.getUnmanagedAM()) {
         // Need reset #containers before create new attempt, because this request
         // will be passed to scheduler, and scheduler will deduct the number after
@@ -1103,7 +1104,13 @@ public class RMAppAttemptImpl implements RMAppAttempt, Recoverable {
         // TODO: change these fields when we want to support
         // priority or multiple containers AM container allocation.
         for (ResourceRequest amReq : appAttempt.amReqs) {
+          // 在创建新的尝试前需要重置 containers，
+          //因为这个请求会被传递给调度器而且调度器在为AM分配container后扣除该数字？
+
+          // 注意，当前版本代码中下面这些值域都是硬编码，后序的版本会支持修改
+          // 设定所需container数
           amReq.setNumContainers(1);
+          // 设定优先级
           amReq.setPriority(AM_CONTAINER_PRIORITY);
         }
 

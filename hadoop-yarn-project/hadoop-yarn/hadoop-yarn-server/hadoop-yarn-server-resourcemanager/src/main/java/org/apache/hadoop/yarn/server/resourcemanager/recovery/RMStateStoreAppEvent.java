@@ -25,6 +25,7 @@ public class RMStateStoreAppEvent extends RMStateStoreEvent {
   private final ApplicationStateData appState;
 
   public RMStateStoreAppEvent(ApplicationStateData appState) {
+    // todo: 九师兄  初始时RMStateStoreEventType为STORE_APP
     super(RMStateStoreEventType.STORE_APP);
     this.appState = appState;
   }

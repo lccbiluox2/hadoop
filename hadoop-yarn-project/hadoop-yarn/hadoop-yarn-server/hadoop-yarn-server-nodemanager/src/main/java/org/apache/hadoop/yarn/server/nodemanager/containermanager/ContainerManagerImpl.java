@@ -1125,6 +1125,19 @@ public class ContainerManagerImpl extends CompositeService implements
     return builder.build();
   }
 
+  /**
+   *todo: 8/7/22 3:00 PM 九师兄
+   * 上面过程中 AM 通过调用 RPC 函数 ContainerManagementProtocol#startContainers()
+   * 开始启动 Container，这部分我们来看看具体的启动逻辑，即 startContainerInternal()
+   * 方法。这里做了两件事
+   *  1. 发送 ApplicationEventType.INIT_APPLICATION 事件，对应用程序资源的初始化，
+   *    主要是初始化各类必需的服务组件（如日志记录组件 LogHandler、资源状态追踪组件
+   *    LocalResourcesTrackerImpl等），供后续 Container 启动，通常来自
+   *    ApplicationMaster 的第一个 Container 完成，后续的 Container 跳过这段
+   *    Application 初始化过程。
+   *  2. 发送 ApplicationEventType.INIT_CONTAINER 事件，对 Container 进行初始化操作。
+   *  （这部分事件留在 Container 启动环节介绍）
+   **/
   @SuppressWarnings("unchecked")
   protected void startContainerInternal(
       ContainerTokenIdentifier containerTokenIdentifier,

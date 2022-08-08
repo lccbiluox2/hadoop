@@ -332,6 +332,7 @@ final public class StateMachineFactory
         return transition.doTransition(operand, oldState, event, eventType);
       }
     }
+    // 走到这里说明从当前状态不能转移到目标状态，抛出异常
     throw new InvalidStateTransitionException(oldState, eventType);
   }
 
@@ -543,9 +544,12 @@ final public class StateMachineFactory
          throws InvalidStateTransitionException  {
       listener.preTransition(operand, currentState, event);
       STATE oldState = currentState;
+      // 我们传进来的是EventType: START，
+      // operand是RMAppImpl，currentState是RMAppState.NEW,eventType是START，event是RMAppEvent
       currentState = StateMachineFactory.this.doTransition
           (operand, currentState, eventType, event);
       listener.postTransition(operand, oldState, currentState, event);
+      // 经过StateMachineFactory.this.doTransition 后 currentState是RMAppState.NEW_SAVIN
       return currentState;
     }
   }

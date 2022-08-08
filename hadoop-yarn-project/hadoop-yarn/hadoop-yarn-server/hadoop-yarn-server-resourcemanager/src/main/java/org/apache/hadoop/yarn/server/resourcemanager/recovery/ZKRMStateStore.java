@@ -845,10 +845,12 @@ public class ZKRMStateStore extends RMStateStore {
   public synchronized void storeApplicationStateInternal(ApplicationId appId,
       ApplicationStateData appStateDataPB) throws Exception {
     long start = clock.getTime();
+    // todo: 九师兄  构建目标zk路径
     String nodeCreatePath = getLeafAppIdNodePath(appId.toString(), true);
 
     LOG.debug("Storing info for app: {} at: {}", appId, nodeCreatePath);
 
+    // todo: 九师兄  带重试的把数据存到zk上
     byte[] appStateData = appStateDataPB.getProto().toByteArray();
     if (appStateData.length <= zknodeLimit) {
       zkManager.safeCreate(nodeCreatePath, appStateData, zkAcl,

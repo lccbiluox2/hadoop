@@ -201,9 +201,16 @@ public class ResourceMgrDelegate extends YarnClient {
     return FileSystem.get(conf).getUri().toString();
   }
 
+  /**
+   *todo: 8/7/22 12:09 PM 九师兄
+   * 获取一个新的JobId
+   **/
   public JobID getNewJobID() throws IOException, InterruptedException {
     try {
+      // 这里的client是一个YarnClientImpl实例
+      // 获取一个ApplicationSubmissionContext
       this.application = client.createApplication().getApplicationSubmissionContext();
+      // 获取applicationId
       this.applicationId = this.application.getApplicationId();
       return TypeConverter.fromYarn(applicationId);
     } catch (YarnException e) {

@@ -457,6 +457,9 @@ public class RMAppManager implements EventHandler<RMAppManagerEvent>,
 
     // todo: 校验资源请求
     ApplicationId applicationId = submissionContext.getApplicationId();
+    // 验证submissionContext并创建资源请求
+    // ResourceRequest 代表一个由app发给RM的申请多个不同的contaner配额，
+    // 包括了优先级、期望的机器或者机架名（*表示任意）、所需的资源、所需的container数、本地资源松弛（默认true）
     List<ResourceRequest> amReqs = validateAndCreateResourceRequest(
         submissionContext, isRecovery);
 
@@ -546,6 +549,10 @@ public class RMAppManager implements EventHandler<RMAppManagerEvent>,
     // Concurrent app submissions with same applicationId will fail here
     // Concurrent app submissions with different applicationIds will not
     // influence each other
+    //
+    // todo: 九师兄 注意这里就将aplication放到了romContext中activeServiceContext内的容器，
+    //   这个容器是一个以appId为key，RMApp为value的ConcurrentMap
+    //   如果app并行提交时传入了相同applicationId，会失败并抛异常
     if (rmContext.getRMApps().putIfAbsent(applicationId, application) !=
         null) {
       String message = "Application with id " + applicationId

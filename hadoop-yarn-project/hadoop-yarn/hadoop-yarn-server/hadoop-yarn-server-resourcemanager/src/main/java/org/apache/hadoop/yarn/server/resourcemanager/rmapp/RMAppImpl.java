@@ -899,6 +899,7 @@ public class RMAppImpl implements RMApp, Recoverable {
 
   @Override
   public void handle(RMAppEvent event) {
+    // 写锁锁定
     this.writeLock.lock();
 
     try {
@@ -909,6 +910,7 @@ public class RMAppImpl implements RMApp, Recoverable {
       final RMAppState oldState = getState();
       try {
         /* keep the master in sync with the state machine */
+        // todo: 九师兄  让主服务器与状态机保持同步 这里传入的状态是RMAppEventType.START，RMAppEvent
         this.stateMachine.doTransition(event.getType(), event);
       } catch (InvalidStateTransitionException e) {
         LOG.error("App: " + appID
@@ -918,6 +920,7 @@ public class RMAppImpl implements RMApp, Recoverable {
 
       // Log at INFO if we're not recovering or not in a terminal state.
       // Log at DEBUG otherwise.
+      // todo: 九师兄  如果状态变更，就记录日志
       if ((oldState != getState()) &&
           (((recoveredFinalState == null)) ||
             (event.getType() != RMAppEventType.RECOVER))) {
@@ -928,6 +931,7 @@ public class RMAppImpl implements RMApp, Recoverable {
             getState(), event.getType()));
       }
     } finally {
+      // todo: 九师兄 最后解除写锁
       this.writeLock.unlock();
     }
   }
@@ -984,6 +988,7 @@ public class RMAppImpl implements RMApp, Recoverable {
   }
 
   private void createNewAttempt() {
+    // 根据appId生成一个attemptId
     ApplicationAttemptId appAttemptId =
         ApplicationAttemptId.newInstance(applicationId, nextAttemptId++);
     createNewAttempt(appAttemptId);
@@ -991,6 +996,7 @@ public class RMAppImpl implements RMApp, Recoverable {
 
   private void createNewAttempt(ApplicationAttemptId appAttemptId) {
     BlacklistManager currentAMBlacklistManager;
+    // AM的Container黑名单（节点级别）
     if (currentAttempt != null) {
       // Transfer over the blacklist from the previous app-attempt.
       currentAMBlacklistManager = currentAttempt.getAMBlacklistManager();
@@ -1004,6 +1010,8 @@ public class RMAppImpl implements RMApp, Recoverable {
         currentAMBlacklistManager = new DisabledBlacklistManager();
       }
     }
+    // 如果（之前失败的尝试次数（不包括抢占，硬件错误和NM重新同步）+ 1）等于最大尝试限制，
+    // 则新创建的尝试可能是最后一次尝试
     RMAppAttempt attempt =
         new RMAppAttemptImpl(appAttemptId, rmContext, scheduler, masterService,
           submissionContext, conf, amReqs, this, currentAMBlacklistManager);
@@ -1013,7 +1021,9 @@ public class RMAppImpl implements RMApp, Recoverable {
 
   private void
       createAndStartNewAttempt(boolean transferStateFromPreviousAttempt) {
+    // 创建一个新的App尝试
     createNewAttempt();
+    // 向AsyncDispatcher提交type为RMAppAttemptEventType.START类型的RMAppStartAttemptEvent事件
     handler.handle(new RMAppStartAttemptEvent(currentAttempt.getAppAttemptId(),
       transferStateFromPreviousAttempt));
   }
@@ -1180,6 +1190,8 @@ public class RMAppImpl implements RMApp, Recoverable {
       RMAppTransition {
     @Override
     public void transition(RMAppImpl app, RMAppEvent event) {
+      // 这里向GenericEventHandler提交一个封装了App信息的AppAddedSchedulerEvent事件
+      // 事件类型是SchedulerEventType.APP_ADDED
       app.handler.handle(
           new AppAddedSchedulerEvent(app.user, app.submissionContext, false,
               app.applicationPriority, app.placementContext));
@@ -1289,6 +1301,8 @@ public class RMAppImpl implements RMApp, Recoverable {
       // non-blocking call so make sure that RM has stored the information
       // needed to restart the AM after RM restart without further client
       // communication
+      // todo: 九师兄 如果启用了recovery，则以非阻塞调用来存储app信息，就可以确保RM已经存储了重新启动AM所需的信息，
+      //   这样在RM重新启动后就无需进一步的客户端通信即可重启AM
       LOG.info("Storing application with id " + app.applicationId);
       app.rmContext.getStateStore().storeNewApplication(app);
     }

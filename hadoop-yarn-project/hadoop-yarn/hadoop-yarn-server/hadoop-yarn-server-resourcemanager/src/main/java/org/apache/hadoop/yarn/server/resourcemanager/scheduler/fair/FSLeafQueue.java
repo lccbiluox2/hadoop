@@ -348,9 +348,11 @@ public class FSLeafQueue extends FSQueue {
     }
 
     for (FSAppAttempt sched : fetchAppsWithDemand(true)) {
+      // 判断待分配的app黑名单中是否包含该node，如果包含就分配下一个app
       if (SchedulerAppUtils.isPlaceBlacklisted(sched, node, LOG)) {
         continue;
       }
+      // todo: 九师兄  node尝试分配container资源给该app
       assigned = sched.assignContainer(node);
       if (!assigned.equals(none())) {
         LOG.debug("Assigned container in queue:{} container:{}",
@@ -373,8 +375,12 @@ public class FSLeafQueue extends FSQueue {
   private TreeSet<FSAppAttempt> fetchAppsWithDemand(boolean assignment) {
     TreeSet<FSAppAttempt> pendingForResourceApps =
         new TreeSet<>(policy.getComparator());
+    // 在这个间隙我们释放锁可以有高效的性能、避免死锁
+    // 未排序的、可运行的App可能在这个时候直接添加
+    // 但我们可以接受，因为这种可能性极低
     readLock.lock();
     try {
+      // 遍历app列表
       for (FSAppAttempt app : runnableApps) {
         if (!Resources.isNone(app.getPendingDemand()) &&
             (assignment || app.shouldCheckForStarvation())) {

@@ -1038,9 +1038,12 @@ public abstract class AbstractYarnScheduler
    */
   private List<ContainerStatus> updateNewContainerInfo(RMNode nm,
       SchedulerNode schedulerNode) {
+    // todo: 九师兄  拿到并清除在NM心跳间隔期间积累的container变更
     List<UpdatedContainerInfo> containerInfoList = nm.pullContainerUpdates();
+    // todo: 九师兄  存放新启动的container
     List<ContainerStatus> newlyLaunchedContainers =
         new ArrayList<>();
+    // todo: 九师兄  存放已结束的container
     List<ContainerStatus> completedContainers =
         new ArrayList<>();
     List<Map.Entry<ApplicationId, ContainerStatus>> updateExistContainers =
@@ -1054,6 +1057,7 @@ public abstract class AbstractYarnScheduler
     }
 
     // Processing the newly launched containers
+    // todo: 九师兄  将应该新启动的Container启动起来
     for (ContainerStatus launchedContainer : newlyLaunchedContainers) {
       containerLaunchedOnNode(launchedContainer.getContainerId(),
           schedulerNode);
@@ -1199,6 +1203,7 @@ public abstract class AbstractYarnScheduler
 
     // Process completed containers
     Resource releasedResources = Resource.newInstance(0, 0);
+    // todo: 九师兄  处理应该结束的Container
     int releasedContainers = updateCompletedContainers(completedContainers,
         releasedResources, nm.getNodeID(), schedulerNode);
 
@@ -1214,6 +1219,7 @@ public abstract class AbstractYarnScheduler
                   .newInstance(schedulerNode.getAllocatedResource(), 0)));
     }
 
+    // todo: 九师兄 更新调度器健康信息
     updateSchedulerHealthInformation(releasedResources, releasedContainers);
     if (schedulerNode != null) {
       updateNodeResourceUtilization(nm, schedulerNode);

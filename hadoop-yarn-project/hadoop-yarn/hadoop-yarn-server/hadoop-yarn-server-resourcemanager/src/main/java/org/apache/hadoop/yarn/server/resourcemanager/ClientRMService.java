@@ -390,6 +390,7 @@ public class ClientRMService extends AbstractService implements
   }
 
   ApplicationId getNewApplicationId() {
+    // todo: 九师兄  这里就是生成ID的代码，可以看到传入了时间戳和一个自增的原applicationCounter
     ApplicationId applicationId = org.apache.hadoop.yarn.server.utils.BuilderUtils
         .newApplicationId(recordFactory, ResourceManager.getClusterTimeStamp(),
             applicationCounter.incrementAndGet());
@@ -402,8 +403,10 @@ public class ClientRMService extends AbstractService implements
       GetNewApplicationRequest request) throws YarnException {
     GetNewApplicationResponse response = recordFactory
         .newRecordInstance(GetNewApplicationResponse.class);
+    // todo: 九师兄  这句话是关键 ，调用了getNewApplicationId方法
     response.setApplicationId(getNewApplicationId());
     // Pick up min/max resource from scheduler...
+    // 前面说过，GetNewApplicationResponse还包含集群的当前容量信息
     response.setMaximumResourceCapability(scheduler
         .getMaximumResourceCapability());       
     

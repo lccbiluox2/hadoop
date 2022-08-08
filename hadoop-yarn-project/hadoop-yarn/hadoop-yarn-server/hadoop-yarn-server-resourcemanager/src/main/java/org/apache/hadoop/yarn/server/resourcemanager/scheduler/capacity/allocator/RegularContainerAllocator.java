@@ -127,6 +127,7 @@ public class RegularContainerAllocator extends AbstractContainerAllocator {
     // AM container allocation doesn't support non-exclusive allocation to
     // avoid painful of preempt an AM container
     if (schedulingMode == SchedulingMode.IGNORE_PARTITION_EXCLUSIVITY) {
+      // 判断app是不是还在傻傻等待AM的Container
       if (application.isWaitingForAMContainer()) {
         LOG.debug("Skip allocating AM container to app_attempt={},"
             + " don't allow to allocate AM container in non-exclusive mode",

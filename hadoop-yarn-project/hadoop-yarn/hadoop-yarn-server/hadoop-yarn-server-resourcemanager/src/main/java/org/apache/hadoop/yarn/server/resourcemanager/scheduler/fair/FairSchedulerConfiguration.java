@@ -88,6 +88,8 @@ public class FairSchedulerConfiguration extends Configuration {
   /**
    * Used during FS-&gt;CS conversion. When enabled, background threads are
    * not started. This property should NOT be used by end-users!
+   *
+   * 在FS->CS转换时使用。当启用时，后台线程不会启动。这个属性不应该被终端用户使用!
    */
   public static final String MIGRATION_MODE = CONF_PREFIX + "migration.mode";
 

@@ -299,6 +299,7 @@ extends AMRMClientAsync<T> {
     }
     
     public void run() {
+      // 心跳线程死循环的跑
       while (true) {
         Object response = null;
         // synchronization ensures we don't send heartbeats after unregistering
@@ -308,6 +309,8 @@ extends AMRMClientAsync<T> {
           }
 
           try {
+            // todo: 九师兄  重点：心跳线程其实就是周期性的调用 allocate() 方法，
+            //  将分配出来的 Container 保存在 AllocateResponse 实例中
             response = client.allocate(progress);
           } catch (ApplicationAttemptNotFoundException e) {
             handler.onShutdownRequest();
@@ -320,6 +323,8 @@ extends AMRMClientAsync<T> {
           if (response != null) {
             while (true) {
               try {
+                // todo: 九师兄  将 RM 返回的 AllocateResponse 对象资源添加到阻塞队列
+                //  responseQueue 中
                 responseQueue.put(response);
                 break;
               } catch (InterruptedException ex) {
@@ -336,13 +341,20 @@ extends AMRMClientAsync<T> {
       }
     }
   }
-  
+
+  /**
+   *todo: 8/7/22 2:48 PM 九师兄
+   * 那 responseQueue 队列保存申请到的 Container 资源怎么使用呢？通过查看
+   * responseQueue.take() 函数，可以发现 AMRMClientAsyncImpl 类中的独立线程
+   * CallbackHandlerThread 会不断地从队列中取出 AllocateResponse 对象进行处理。
+   **/
   private class CallbackHandlerThread extends Thread {
     public CallbackHandlerThread() {
       super("AMRM Callback Handler Thread");
     }
     
     public void run() {
+      // 死循环取出申请到的 Container 资源并进行处理
       while (true) {
         if (!keepRunning) {
           return;
@@ -350,6 +362,7 @@ extends AMRMClientAsync<T> {
         try {
           Object object;
           try {
+            // todo: 九师兄  从阻塞队列 responseQueue 取出 Container 资源
             object = responseQueue.take();
           } catch (InterruptedException ex) {
             LOG.debug("Interrupted while waiting for queue", ex);
@@ -399,6 +412,7 @@ extends AMRMClientAsync<T> {
 
           List<Container> allocated = response.getAllocatedContainers();
           if (!allocated.isEmpty()) {
+            // todo: 九师兄  重点：处理分配出来的 Container
             handler.onContainersAllocated(allocated);
           }
 
@@ -425,6 +439,7 @@ extends AMRMClientAsync<T> {
                   .onRequestsRejected(rejectedSchedulingRequests);
             }
           }
+          // todo: 九师兄  更新 Container 的执行进度
           progress = handler.getProgress();
         } catch (Throwable ex) {
           handler.onError(ex);

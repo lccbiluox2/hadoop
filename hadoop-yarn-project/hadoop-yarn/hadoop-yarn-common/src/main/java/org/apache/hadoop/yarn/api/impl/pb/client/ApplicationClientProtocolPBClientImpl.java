@@ -276,6 +276,14 @@ public class ApplicationClientProtocolPBClientImpl implements ApplicationClientP
     }
   }
 
+  /**
+   * 这个方法继承自ApplicationClientProtocol，注释如下：
+   * 这个方法是客户端用来获取一个新的ApplicationId，然后用它来提交新的application
+   * 该方法执行后，RM会在返回一个GetNewApplicationResponse，
+   * 他包含了一个新的、单调递增的ApplicationId以及一些详细的集群信息如最大资源容量
+   *
+   * 也就是说这里只是获取appId，不会真正执行app
+   */
   @Override
   public GetNewApplicationResponse getNewApplication(
       GetNewApplicationRequest request) throws YarnException,

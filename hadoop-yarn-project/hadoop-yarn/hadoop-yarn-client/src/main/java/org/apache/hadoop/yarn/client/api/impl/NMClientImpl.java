@@ -183,6 +183,12 @@ public class NMClientImpl extends NMClient {
     }
   }
 
+  /**
+   *todo: 8/7/22 2:58 PM 九师兄
+   * 这里首先获取到 AM 真正与 NM 交互的客户端 NMClient，并调用其实现类 NMClientImpl
+   * 的 startContainer() 方法，获取到与 NM 交互的 RPC 协议 ContainerManagementProtocol，
+   * 并通过其协议的 startContainers() 方法实现 RPC 远程调用，来实现 Container 的启动。
+   **/
   @Override
   public Map<String, ByteBuffer> startContainer(
       Container container, ContainerLaunchContext containerLaunchContext)
@@ -190,6 +196,7 @@ public class NMClientImpl extends NMClient {
     // Do synchronization on StartedContainer to prevent race condition
     // between startContainer and stopContainer only when startContainer is
     // in progress for a given container.
+    // 构建 StartContainer 对象
     StartedContainer startingContainer =
         new StartedContainer(container.getId(), container.getNodeId());
     synchronized (startingContainer) {
@@ -208,6 +215,8 @@ public class NMClientImpl extends NMClient {
         list.add(scRequest);
         StartContainersRequest allRequests =
             StartContainersRequest.newInstance(list);
+        // todo: 九师兄  重点：获取到 RPC 调用协议 ContainerManagementProtocol，
+        //  并通过 RPC 函数 startContainers 启动 Container
         StartContainersResponse response =
             proxy
                 .getContainerManagementProtocol().startContainers(allRequests);

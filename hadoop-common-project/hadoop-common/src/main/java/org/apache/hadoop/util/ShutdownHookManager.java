@@ -59,11 +59,15 @@ import static org.apache.hadoop.fs.CommonConfigurationKeysPublic.SERVICE_SHUTDOW
  * {@code core-site.xml}, with a default value of
  * {@link CommonConfigurationKeysPublic#SERVICE_SHUTDOWN_TIMEOUT_DEFAULT}
  * seconds.
+ *
+ * 这段注释的意思大致是说ShutdownHookManager让注册进来的shutdownHook按顺序运行，并且高优先级先运行
+ *  这样设计的原因是如果各自注册shutdownHook的话，JVM是没有办法保证执行顺序。
  */
 @InterfaceAudience.Public
 @InterfaceStability.Evolving
 public final class ShutdownHookManager {
 
+  // todo: 九师兄 首先，包含一个饿汉式的ShutdownHookManager自身的单例对象：
   private static final ShutdownHookManager MGR = new ShutdownHookManager();
 
   private static final Logger LOG =
@@ -81,6 +85,12 @@ public final class ShutdownHookManager {
           .setNameFormat("shutdown-hook-%01d")
           .build());
 
+  /**
+   *todo: 8/7/22 12:40 PM 九师兄
+   *   //这里是向JVM注册了一个ShutdownHook，由一个线程来处理已经注册的ShutdownHook方法。
+   *   //在执行shutdownHook处理前，会将原子类型的标志位shtdownInProgress设为true表名正在处理所有shutdownHook。
+   *   //而且，这个过程是按注册时的优先级来排序的。
+   **/
   static {
     try {
       Runtime.getRuntime().addShutdownHook(
@@ -193,6 +203,10 @@ public final class ShutdownHookManager {
   /**
    * Private structure to store ShutdownHook, its priority and timeout
    * settings.
+   *
+   * HookEntry的代码很简单，就是封装了ShutdownHook线程对象和优先级的一个类。
+   *
+   * 重写了equals方法，判断的标准是内部的名为hook的Runnable对象是否相同。
    */
   @InterfaceAudience.Private
   @VisibleForTesting
@@ -248,9 +262,11 @@ public final class ShutdownHookManager {
     }
   }
 
+  //定义了一个存放shutdownHook的是线程安全的HashSet，以HookEntry来进行了封装了ShutdownHook对象。
   private final Set<HookEntry> hooks =
       Collections.synchronizedSet(new HashSet<HookEntry>());
 
+  //用原子类型的布尔值表示shutdownHook是否正常处理中
   private AtomicBoolean shutdownInProgress = new AtomicBoolean(false);
 
   //private to constructor to ensure singularity
@@ -264,14 +280,19 @@ public final class ShutdownHookManager {
    * Highest priority first.
    *
    * @return the list of shutdownHooks in order of execution.
+   *
+   * 按执行顺序来返回shutdownHook列表，高优先级在前
    */
   @InterfaceAudience.Private
   @VisibleForTesting
   List<HookEntry> getShutdownHooksInOrder() {
     List<HookEntry> list;
+    //这里就是获取了装有所有hooks的set对象的对象锁，转为list
     synchronized (hooks) {
       list = new ArrayList<>(hooks);
     }
+
+    //对hook list进行排序，高优先级排在前
     Collections.sort(list, new Comparator<HookEntry>() {
 
       //reversing comparison so highest priority hooks are first
@@ -280,6 +301,7 @@ public final class ShutdownHookManager {
         return o2.priority - o1.priority;
       }
     });
+    //最终返回这个已排好序的shutdownHook runnable list
     return list;
   }
 

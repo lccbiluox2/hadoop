@@ -161,6 +161,7 @@ public class NMClientAsyncImpl extends NMClientAsync {
 
         while (!stopped.get() && !Thread.currentThread().isInterrupted()) {
           try {
+            // todo: 九师兄  从阻塞队列 events 中取出 ContainerEvent 事件
             event = events.take();
           } catch (InterruptedException e) {
             if (!stopped.get()) {
@@ -197,6 +198,13 @@ public class NMClientAsyncImpl extends NMClientAsync {
 
           // the events from the queue are handled in parallel with a thread
           // pool
+          /**
+           *todo: 8/7/22 2:55 PM 九师兄
+           * 重点：根据获取到的 Container 事件类型为 ContainerEventType.START_CONTAINER
+           * getContainerEventProcessor(event) 返回一个 ContainerEventProcessor 线程对象，
+           * 并在线程池中启动
+           *
+           **/
           threadPool.execute(getContainerEventProcessor(event));
 
           // TODO: Group launching of multiple containers to a single
@@ -204,6 +212,8 @@ public class NMClientAsyncImpl extends NMClientAsync {
         }
       }
     };
+
+    // todo: 九师兄  启动线程
     eventDispatcherThread.setName("Container  Event Dispatcher");
     eventDispatcherThread.setDaemon(false);
     eventDispatcherThread.start();
@@ -252,6 +262,20 @@ public class NMClientAsyncImpl extends NMClientAsync {
               " is already started or scheduled to start"));
     }
     try {
+      /**
+       *todo: 8/7/22 2:53 PM 九师兄
+       * 可以看到 nmClientAsync.startContainerAsync() 方法并没有真正启动 Container，
+       * 而是将 ContainerEventType.START_CONTAINER 事件封装成  ContainerEvent 对象
+       * （StartContainerEvent 类继承自 ContainerEvent 类），并添加到 Container 事件
+       * 处理的阻塞队列 events 中，具体操作处理流程由 events 队列的消费逻辑处理。
+       *
+       * 那这里的阻塞队列 events 又是怎么处理呢？还是来找找 events.take() 方法，发现在
+       * NMClientAsyncImpl 类执行 serviceStart() 方法时会启动一个线程去消费 events
+       * 队列的事件，队列取出来的事件对象为内部封装有 ContainerEventType.START_CONTAINER
+       * 事件的 ContainerEvent 对象，通过 getContainerEventProcessor(event) 方法，
+       * 获取对应的 ContainerEvent 对象的处理器 ContainerEventProcessor，并以线程池的
+       * 方式运行该处理器。
+       **/
       events.put(new StartContainerEvent(container, containerLaunchContext));
     } catch (InterruptedException e) {
       LOG.warn("Exception when scheduling the event of starting Container " +
@@ -624,10 +648,12 @@ public class NMClientAsyncImpl extends NMClientAsync {
             scEvent = (StartContainerEvent) event;
           }
           assert scEvent != null;
+          // todo: 九师兄 重点：调用 NMClient 类的 startContainer() 启动 Container
           Map<String, ByteBuffer> allServiceResponse =
               container.nmClientAsync.getClient().startContainer(
                   scEvent.getContainer(), scEvent.getContainerLaunchContext());
           try {
+            // todo: 九师兄  通过回调的方式更新 Container 状态
             container.nmClientAsync.getCallbackHandler().onContainerStarted(
                 containerId, allServiceResponse);
           } catch (Throwable thr) {
@@ -635,6 +661,7 @@ public class NMClientAsyncImpl extends NMClientAsync {
             LOG.info("Unchecked exception is thrown from onContainerStarted for "
                 + "Container " + containerId, thr);
           }
+          // todo: 九师兄  返回 Container 的 RUNNING 状态
           return ContainerState.RUNNING;
         } catch (YarnException e) {
           return onExceptionRaised(container, event, e);
@@ -949,10 +976,17 @@ public class NMClientAsyncImpl extends NMClientAsync {
       this.event = event;
     }
 
+    /**
+     *todo: 8/7/22 2:56 PM 九师兄
+     * ContainerEventProcessor 处理器类是 NMClientAsyncImpl 类的内部类，继承自
+     * Runnable 类，那我们来看看该类的 run() 方法，根据事件类型 ContainerEventType.START_CONTAINER
+     * 进入到对应的执行逻辑中，并通过 handle() 方法交给对应的状态机执行。
+     **/
     @Override
     public void run() {
       ContainerId containerId = event.getContainerId();
       LOG.info("Processing Event " + event + " for Container " + containerId);
+      // todo: 九师兄  对 ContainerEventType.QUERY_CONTAINER 事件单独处理
       if (event.getType() == ContainerEventType.QUERY_CONTAINER) {
         try {
           ContainerStatus containerStatus = client.getContainerStatus(
@@ -978,6 +1012,7 @@ public class NMClientAsyncImpl extends NMClientAsync {
         if (container == null) {
           LOG.info("Container " + containerId + " is already stopped or failed");
         } else {
+          // todo: 九师兄  根据事件类型交给对应的状态机处理
           container.handle(event);
           if (isCompletelyDone(container)) {
             containers.remove(containerId);

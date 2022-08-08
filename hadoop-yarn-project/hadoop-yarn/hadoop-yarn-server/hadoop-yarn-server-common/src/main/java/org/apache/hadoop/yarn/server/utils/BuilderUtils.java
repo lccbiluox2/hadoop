@@ -130,6 +130,11 @@ public class BuilderUtils {
         Integer.parseInt(id.toString()));
   }
 
+  /**
+   *todo: 8/7/22 12:24 PM 九师兄
+   * 这个类注释：ApplicationId代表应用的全局唯一表示，他的唯一性是用集群时间戳（如RM的启动时间）和一个单调自增的
+   * application计数器保证的。下面我们看前面使用的newInstance方法：
+   **/
   public static ApplicationId newApplicationId(RecordFactory recordFactory,
       long clusterTimeStamp, int id) {
     return ApplicationId.newInstance(clusterTimeStamp, id);

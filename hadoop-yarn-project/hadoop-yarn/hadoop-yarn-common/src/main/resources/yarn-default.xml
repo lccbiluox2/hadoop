@@ -1255,7 +1255,12 @@
     <value>JAVA_HOME,HADOOP_COMMON_HOME,HADOOP_HDFS_HOME,HADOOP_CONF_DIR,CLASSPATH_PREPEND_DISTCACHE,HADOOP_YARN_HOME,HADOOP_HOME,PATH,LANG,TZ</value>
   </property>
 
-<!--  这应该设置为“org.apache.hadoop.yarn.server.nodemanager.LinuxContainerExecutor”。CGroups是Linux内核功能，通过LinuxContainerExecutor公开。-->
+<!--  这应该设置为“org.apache.hadoop.yarn.server.nodemanager.LinuxContainerExecutor”。CGroups是Linux内核功能，通过LinuxContainerExecutor公开。
+Container 启动是由 ContainerLauncher 服务完成，该服务将进一步调用插拔式组件 ContainerExecutor。Yarn 中提供了三种 ContainerExecutor 实现，一种是 DefaultContainerExecutor，
+一种是 LinuxContainerExecutor，
+另一种是 DockerContainerExecutor，
+由参数 yarn.nodemanager.container-executor.class 控制具体采用的方式。
+-->
   <property>
     <description>who will execute(launch) the containers.</description>
     <name>yarn.nodemanager.container-executor.class</name>
