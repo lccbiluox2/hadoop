@@ -1738,6 +1738,7 @@ public class ResourceManager extends CompositeService
   }
 
   protected RMSecretManagerService createRMSecretManagerService() {
+    //  todo: 下午10:37 九师兄
     return new RMSecretManagerService(conf, rmContext);
   }
 

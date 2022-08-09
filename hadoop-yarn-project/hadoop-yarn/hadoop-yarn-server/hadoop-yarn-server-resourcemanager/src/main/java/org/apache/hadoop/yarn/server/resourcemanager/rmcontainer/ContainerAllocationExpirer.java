@@ -25,15 +25,27 @@ import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.event.ContainerExpiredSchedulerEvent;
 import org.apache.hadoop.yarn.util.AbstractLivelinessMonitor;
 
-/**
- * 8/1/22 6:57 PM 九师兄
+/***
+ * 2022/8/9 下午10:11 lcc 九师兄
+ * todo: 8/1/22 6:57 PM 九师兄
  *
- * 当一个ApplicationMaster获得一个Container后，YARN不允许ApplicationMaster长时间
+ *todo:当一个ApplicationMaster获得一个Container后，YARN不允许ApplicationMaster长时间
  * 不对其使用，这样会降低整个集群的利用率。当ApplicationMaster收到RM新分配的一个Container
  * 后，必须再一定的时间内（默认为10min）内在对应的NM上启动该Container，否则RM将强制回收该
  * Container，而一个已经分配的Container是否被回收则是由ContinerAllocationExpier决定和
  * 执行的。
  *
+ * 该组件负责确保所有分配的Container最终被ApplicationMaster使用，并在相应的
+ * NodeManager上拉起。ApplicationMaster 运行着非可信任的用户代码，可能拿到分配的
+ * Container而不使用它们。这样，将降低资源使用率，浪费集群资源。为解决这个问题，
+ * ContainerAllocationExpirer包含了一个已分配但是还没有在相应NodeManager上启动的
+ * Container的列表。对任意的Container,在一个配置的时间间隔(默认10分钟)，如果相应的
+ * NodeManager没有报告给ResourceManager该Container已经运行了，在ResourceManager中
+ * 该容器被当作死亡的且超时。
+ *
+ * 此外，NodeManager自己也查看这个超时时间，该信息编码绑定在Container的
+ * ContainerToken中。如果Container已经超时，则NodeManager拒绝拉起该Container。显然，
+ * 该功能依赖于系统中ResourceManager和NodeManager上系统时钟的同步。
  **/
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class ContainerAllocationExpirer extends
@@ -57,6 +69,7 @@ public class ContainerAllocationExpirer extends
 
   @Override
   protected void expire(AllocationExpirationInfo allocationExpirationInfo) {
+    //  todo: 下午10:11 九师兄 过期了就发送一个过期处理事件
     dispatcher.handle(new ContainerExpiredSchedulerEvent(
         allocationExpirationInfo.getContainerId(),
             allocationExpirationInfo.isIncrease()));

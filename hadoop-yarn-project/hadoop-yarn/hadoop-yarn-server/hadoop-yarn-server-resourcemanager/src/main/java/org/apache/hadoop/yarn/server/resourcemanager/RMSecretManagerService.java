@@ -54,6 +54,7 @@ public class RMSecretManagerService extends AbstractService {
     nmTokenSecretManager = createNMTokenSecretManager(conf);
     rmContext.setNMTokenSecretManager(nmTokenSecretManager);
 
+    //  todo: 下午10:38 九师兄 创建安全相关
     containerTokenSecretManager = createContainerTokenSecretManager(conf);
     rmContext.setContainerTokenSecretManager(containerTokenSecretManager);
 
@@ -106,6 +107,7 @@ public class RMSecretManagerService extends AbstractService {
 
   protected RMContainerTokenSecretManager createContainerTokenSecretManager(
       Configuration conf) {
+    //  todo: 下午10:38 九师兄 可以看看集成体系
     return new RMContainerTokenSecretManager(conf);
   }
 

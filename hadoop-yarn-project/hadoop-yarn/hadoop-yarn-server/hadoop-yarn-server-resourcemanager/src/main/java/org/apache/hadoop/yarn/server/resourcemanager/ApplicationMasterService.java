@@ -93,6 +93,10 @@ import org.apache.hadoop.thirdparty.com.google.common.annotations.VisibleForTest
  *
  * 清理是应用程序结束时发生的。ApplicationMaster向RM发送清理应用程序的请求，以回收资源和
  * 清理各种内存空间。
+ *
+ * ApplicationMasterService有额外的逻辑来确保一在任意时间点一 任 意ApplicationMaster
+ * 只有一个线程可以发送请求给ResourceManager。在ResourceManager上所有来自ApplicationMaster
+ * 的RPC请求都串行化了，所以也期望在ApplicationMaster只有一个线程发起这些请求。
  **/
 @SuppressWarnings("unchecked")
 @Private
