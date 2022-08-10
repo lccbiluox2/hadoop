@@ -32,6 +32,21 @@ import org.apache.hadoop.yarn.server.nodemanager.nodelabels.NodeLabelsProvider;
  * 汇报各个Container的状态更新，包括节点上正运行的Container、已完成的Container等信息，
  * 同时ResouceManager会返回待清理Container列表、待清理应用程序列表、诊断信息、
  * 各种Token等信息。
+ *
+ * 在NM刚启动时，NodeStatusUpdater 组件会向ResourceManager 注册，发送本节点的
+ * 可用资源，以及NodeManager的Web Server 和RPC Server的监听端口。ResourceManager
+ * 在注册过程中，向NodeManager发出安全相关的KEY，NodeManager将用这个KEY为
+ * ApplicationMaster的Container 请求做认证。后续的NodeManager-ResourceManager 的通信向
+ * ResourceManager提供当前Container的更新信息，ApplicationMasgter 新启动的Container信
+ * 息，完成的Container信息，等等。
+ *
+ * 除此之外，ResourceManager可能通过这个组件来通知NodeManager杀死正在运行的
+ * Container,
+ *
+ * 原因可能是:管理员要让一个NM退役时或者因为网络问题要让NM重新同步。
+ * 最终，当ResourceManager.上有任何应用程序结束时，ResourceManager 都会向NodeManager
+ * 发出信号，要求清理该应用程序在本节点上对应的资源(如内部每个应用程序的数据结构以
+ * 及应用程序级别的本地资源)，然后发起应用程序的日志聚集。
  **/
 public interface NodeStatusUpdater extends Service {
 

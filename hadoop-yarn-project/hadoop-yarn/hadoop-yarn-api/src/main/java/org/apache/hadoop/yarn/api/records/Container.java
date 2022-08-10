@@ -82,6 +82,17 @@ import java.util.Set;
  *  注:RM只负责资源的分配和回收以及应用程序状态的维护，它不会负责当任务失败的时候进行重启
  *     Container,即不负责容错处理。
  *
+ * 在YARN中，包括ApplicationMaster在内的所有Container 都通过Container Launch
+ * Context (CLC)来描述。CLC包括环境变量，依赖的库( 可能存在远程存储中)，下载库文件
+ * 以及Container自身运行需要的安全令牌，用于NodeManager辅助服务的Container专用的载
+ * 荷，以及启动进程所需的命令。在验 证启动Container请求的有效性后，NodeManager 会为
+ * Container配置环境，从而使管理员指定的设置生效。
+ *
+ * 在真正拉起一个Container之前，NodeManager 会将所有需要的库文件下载到本地，包
+ * 括数据文件，可执行文件、tarball、 JAR文件，shell 脚本等。这些下载好的库文件可以通
+ * 过本地应用级别缓存被同一应用的多个Container共享，通过本地用户级别缓存被相同用户
+ * 启动的多个Container共享，甚至通过公用缓存的方式被多个用户共享，其共享方式是通过
+ * CLC来指定的。NodeManager 最终会回收不再被任何Container使用的库文件。
  */
 @Public
 @Stable
