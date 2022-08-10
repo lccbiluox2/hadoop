@@ -45,6 +45,17 @@ import org.apache.hadoop.yarn.exceptions.YarnException;
  * <p>This is used by the <code>ApplicationMaster</code> to register/unregister
  * and to request and obtain resources in the cluster from the
  * <code>ResourceManager</code>.</p>
+ *
+ * 这是ApplicationMaster跟ResourceManager通信的唯- -的协议。 它负责以下的任务:
+ * ■ 注册新的ApplicationMaster
+ * ■ 来自任意正在结束的ApplicationMaster的终止/取消注册请求
+ * ■ 认证来自不同ApplicationMaster的所有请求，确保只有合法的ApplicationMaster发送
+ *   的请求传递给ResourceManager中的应用程序对象
+ * ■ 获取来自所有运行ApplicationMaster的Container的分配和释放请求，异步的转发给YARN的调度器
+ *
+ * ApplicationMasterService有额外的逻辑来确保一在任意时间点一 任 意ApplicationMaster
+ * 只有一个线程可以发送请求给ResourceManager。在ResourceManager上所有来自ApplicationMaster
+ * 的RPC请求都串行化了，所以也期望在ApplicationMaster只有一个线程发起这些请求。
  */
 @Public
 @Stable

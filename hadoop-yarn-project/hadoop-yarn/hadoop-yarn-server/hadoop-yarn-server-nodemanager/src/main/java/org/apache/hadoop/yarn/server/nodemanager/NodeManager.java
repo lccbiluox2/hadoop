@@ -115,6 +115,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *  LocalizedResource是NodeManager中维护一种“资源”(资源文件、JAR包、归档文件等外部文件资源)
  *  生命周期的数据结构，它维护了一个状态，记录了"资源"可能存在的各种状态以及导致状态间转换的事件。
  *
+ * NodeManagers存活监控
+ *
+ * 为跟踪活跃的节点和确定已死的节点，该组件跟踪每一个节点的标识符(ID)和它最后
+ * 的心跳时间。任何没有在配置的时间间隔发送心跳的节点被认为死亡且在ResourceManager
+ * 中超时，默认时间间隔是10分钟。所有当前运行在超时节点上的Container被标记为死亡，
+ * 而且不会有新的Container调度到该节点。一旦该节点启动(自动重启或通过管理员操作)并
+ * 注册，就会重新参与调度。
  **/
 public class NodeManager extends CompositeService
     implements EventHandler<NodeManagerEvent>, NodeManagerMXBean {
@@ -187,8 +194,9 @@ public class NodeManager extends CompositeService
     return nmStartupTime;
   }
 
-  /*
-   * 九师兄 https://blog.csdn.net/qq_21383435/article/details/125956947
+  /**
+   * 2022/8/9 下午10:26 lcc 九师兄
+   * todo: 九师兄 https://blog.csdn.net/qq_21383435/article/details/125956947
    * 【Yarn】Yarn NodeManager注册和心跳
    **/
   protected NodeStatusUpdater createNodeStatusUpdater(Context context,

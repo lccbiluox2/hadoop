@@ -1432,6 +1432,11 @@ Container 启动是由 ContainerLauncher 服务完成，该服务将进一步调
 
 <!--  日志存放地址（可配置多个目录）。默认值：${yarn.log.dir}/userlogs
 以逗号分隔的本地文件系统上写入日志的路径列表。	多个路径有助于传播磁盘I / O.
+
+配置项yarn.nodemanager.log-dirs决定了在Container 运行时，它的日志保存在节点的什
+么位置。默认值是$ {yarn.log dir}/userlogs。应用程序的本地化日志目录在{yarn.nodemanager.
+log-dirs}/application $ {appid}下。各个Container的日志目录在这个层级之下的名为container
+{$containerld} 的子目录中。
 -->
   <property>
     <description>
@@ -1546,9 +1551,15 @@ Container 启动是由 ContainerLauncher 服务完成，该服务将进一步调
     <value>600000</value>
   </property>
 
-<!--  NodeManager上日志最多存放时间（不启用日志聚集功能时有效）。默认值：10800（3小时）
+<!--
+NodeManager上日志最多存放时间（不启用日志聚集功能时有效）。默认值：10800（3小时）
+在NodeManager上保留日志文件的默认时间（以秒为单位）仅在禁用日志聚合时适用。
 
-	在NodeManager上保留日志文件的默认时间（以秒为单位）仅在禁用日志聚合时适用。
+下面的配置在关闭日志聚合功能时使用。
+■yarn.nodemanagerlog.retain-seconds:在日志聚合关闭的情况下在各个节点上保留用户
+日志的时间(单位:秒)。默认是10800。
+■yarn.nodemanager.log. deletion-threads-count:在聚合功能关闭的情况下，当日志的本
+地保留时间到了，NodeManager 用于清理日志所启动的线程数。
 -->
   <property>
     <description>Time in seconds to retain user logs. Only applicable if
@@ -1558,6 +1569,25 @@ Container 启动是由 ContainerLauncher 服务完成，该服务将进一步调
     <value>10800</value>
   </property>
 
+<!--
+  当开启日志聚合功能时，下面的配置项将会生效。
+  ■yarn.nodemanager.remote-app-log-dir :这个目录位于默认的文件系统(通常是HDFS)
+  中，指定NodeManager将会在哪里聚合日志。它不能是本地文件系统，否则服务的
+  守护进程(如历史服务器)将不能服务于聚合的日志。默认是值/tmp/logs
+
+  ■yarm.nodemanager.remote app-log dir-sufix:在{yarm.nodemanager.remote -app-log-dir}/$ {user}/
+  {suffix}目录下创建的远程日志目录。默认的后缀值是“ logs"。
+  ■yarn.log-aggregation.retain seconds:这个配置项定义了等待多长时间后删除聚合后的
+  日志，-1或任意一一个负数表示不删除聚合的日志。注意不要将这个配置设置的太小，
+  否则会给分布式文件系统带来负担。
+  ■yarn.log- aggregation.retain -check-interval-seconds:这个配置决定了隔多久检查-次是
+  否保留汇聚的日志。如果这个值设为0或一一个负值，那么这个值将按照聚合日志保留
+  时间的十分之- - 来计算。跟前面的配置项一样，注意不要将它设的非常小。默认值
+  为-1。
+
+  yarn.log.server.url:一旦应用完成了，NodeManager 会将Web用户界面重定向到这个
+  URL,它向用户提供汇聚后的日志。目前，它指向MapReduce专用的作业历史界面。
+-->
   <property>
     <description>Where to aggregate logs to.</description>
     <name>yarn.nodemanager.remote-app-log-dir</name>
