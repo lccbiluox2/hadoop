@@ -109,6 +109,12 @@ public interface ApplicationClientProtocol extends ApplicationBaseProtocol {
    * as maximum resource capabilities in the cluster as specified in
    * {@link GetNewApplicationResponse}.</p>
    *
+   *  // 客户端请求获取一个ApplicationId
+   *  // 由RM返回一个单调递增的ApplicationId，由客户端用来注册新应用
+   *  // 除了ApplicationId之外，还有最大可使用资源量maxCapability(Resource)
+   *  // ApplicationId和maxCapability封装在GetNewApplicationResponse里面
+   *
+   *
    * @param request request to get a new <code>ApplicationId</code>
    * @return response containing the new <code>ApplicationId</code> to be used
    * to submit an application

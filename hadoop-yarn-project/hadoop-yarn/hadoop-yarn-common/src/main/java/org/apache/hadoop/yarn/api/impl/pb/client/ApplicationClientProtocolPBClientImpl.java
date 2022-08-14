@@ -208,6 +208,7 @@ public class ApplicationClientProtocolPBClientImpl implements ApplicationClientP
       InetSocketAddress addr, Configuration conf) throws IOException {
     RPC.setProtocolEngine(conf, ApplicationClientProtocolPB.class,
         ProtobufRpcEngine2.class);
+    // 此处的proxy会在YarnClient调用start()方法启动时完成初始化
     proxy = RPC.getProxy(ApplicationClientProtocolPB.class, clientVersion, addr, conf);
   }
 
