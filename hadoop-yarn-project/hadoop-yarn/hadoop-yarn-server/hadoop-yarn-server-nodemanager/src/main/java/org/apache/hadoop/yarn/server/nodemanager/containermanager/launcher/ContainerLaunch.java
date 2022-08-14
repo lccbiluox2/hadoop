@@ -100,6 +100,53 @@ import org.apache.hadoop.thirdparty.com.google.common.annotations.VisibleForTest
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/***
+ * 2022/8/10 下午10:31 lcc 九师兄
+ * todo:
+ *
+ * Container启动后，它是否能履行其责任依赖于各种信息是否可用。这些信息有些是静态
+ * 的，有些是动态的，也就是说，只在运行时可解析。
+ * 静态的信息包括依赖库、输入输出路径以及外部系统(如数据库或文件系统的URL)的
+ * 一些规范。下面的列表强调了--些这方面的信息，并解释了Container是如何获取它的。
+ *
+ * ■ApplicationMaster 应在ContainerLaunchContext中描述Container启动时所需的所有库
+ * 以及其他依赖。这样一来，在Container启动时，这些依赖已经通过NodeManager.上
+ * 的本地化模块下载了，并可以直接链接。
+ *
+ * ■输入/输出路径和文件系统URL是配置的一一部分，超出了YARN的控制。应用需要
+ * 将这些信息传递给自己。有多种方法可以实现:
+ *    口环境变量
+ *    口命令行参数
+ *    口本身作为本地资源传过来的独立的配置文件
+ * ■环境变量ApplicationConstants. Environment.LOCAL DIRS可以决定Container向哪个
+ * 本地目录输出。
+ *
+ * ■因为Container需要向文件输出日志或错误报告，所以它要使用日志目录功能。
+ * NodeManager决定了运行时，日志目录的位置。正因如此，Container 的命令行或环境
+ * 变量通过一个专门的标志ApplicationConstants.LOG _DIR_ EXPANSION _VAR指向日志
+ * 目录。当Container启动时，这个标志自动被适当的本地文件系统上的日志目录替换。
+ *
+ * ■NodeManager 通过环境变量记录下用户名、主目录、Container ID以及一些其他特定
+ * 的环境信息，Container可以简单地通过环境变量查看这些信息。所有这些环境变量都
+ * 记录在API ApplicationConstants.Environment中。!
+ *
+ * ■与安全相关的令牌都可以在本地文件系统上的-一个文件中获取，文件名在Container
+ * 的环境变量中提供，变量名为ApplicationConstants.CONTAINER _TOKEN FILE_
+ * ENV_ NAME。Container 可以直接读取这个文件并将所有的凭证加载到内存中。
+ *
+ * 动态信息包括那些在Container生命周期中可能会改变的设置。它由ApplicationMaster
+ * 的位置、Reduce任务的映射输出位置等类似信息组成。这些信息中大多数属于特定的应用程
+ * 序实现的职责。其中- -些选项包含以下内容:
+ *
+ * ■ApplicationMaster的URL可以通过环境变量、命令行或配置来传递，但在它故障恢
+ * 复时使用的任何动态变化， 可以作为客户端直接与ResourceManager通信得到。
+ *
+ * ApplicationMaster可以协调Container 的输出位置以及相应的辅助服务，并向其他
+ * Container提供这些信息。
+ *
+ * HDFS NameNode的位置(在故障恢复情况下)可以通过动态插件获取，它通过配置
+ * 来查找Active的NameNode运行在哪里。
+ */
 public class ContainerLaunch implements Callable<Integer> {
 
   private static final Logger LOG =

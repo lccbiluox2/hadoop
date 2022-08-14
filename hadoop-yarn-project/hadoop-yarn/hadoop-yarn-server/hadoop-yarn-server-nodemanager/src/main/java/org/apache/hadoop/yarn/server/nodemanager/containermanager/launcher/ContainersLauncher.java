@@ -68,6 +68,16 @@ public class ContainersLauncher extends AbstractService
   private ContainerManagerImpl containerManager;
 
   private LocalDirsHandlerService dirsHandler;
+  /***
+   * 2022/8/10 下午10:06 lcc 九师兄
+   * todo:
+   *  ContainerLauncher维护了-一个线程池，用于尽快地准备以及拉起Container。如果
+   *  ResourceManager通过NodeStatusUpdater或者ApplicationMaster通过RPC Server需要清
+   *  理Container的进程时，也是由Container Launcher负责该清理工作。对一个Container的拉
+   *  起和清理操作都由线程池中的某--个线程处理，当相应的操作完成后，它才会返回。因此，
+   *  对一个Container的拉起或者清理不会影响任何其他操作，并且一个NodeManager内所有
+   *  Container的操作之间都是隔离的。
+   */
   @VisibleForTesting
   public ExecutorService containerLauncher =
       HadoopExecutors.newCachedThreadPool(

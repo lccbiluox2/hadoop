@@ -97,6 +97,27 @@ import org.apache.hadoop.thirdparty.com.google.common.annotations.VisibleForTest
  * ApplicationMasterService有额外的逻辑来确保一在任意时间点一 任 意ApplicationMaster
  * 只有一个线程可以发送请求给ResourceManager。在ResourceManager上所有来自ApplicationMaster
  * 的RPC请求都串行化了，所以也期望在ApplicationMaster只有一个线程发起这些请求。
+ *
+ * ApplicationMaster需要在由于它自身原因重启后恢复应用程序。当ApplicationMaster
+ * 失败时，ResourceManager 简单地通过重新启动一一个新的ApplicationMaster (更确切地说是
+ * 运行ApplicationMaster的Container)来重启应用程序(新的ApplicationMaster将启动新的
+ * ApplicationAttempt)，恢复应用程序的先前的状态是新ApplicationMaster 的责任。这个目标
+ * 可以通过以下方法实现:当前ApplicationAttempt将当前状态持久化到外部存储供后面的
+ * ApplicationAttempt使用。显然ApplicationMaster也可以从头开始运行应用程序，而不是恢
+ * 复其过去的状态。例如，如本书所述，Hadoop MapReduce框架的ApplicationMaster 会恢复
+ * 已完成的任务，但会杀死正在运行的任务以及在ApplicationMaster恢复时完成的任务，然后
+ * 重新运行它们。
+ *
+ * ApplicationMaster 退出时进行清理
+ *
+ * 当ApplicationMaster完成所有工作后，它应该显式地向ResourceManager发送FinishApplication-
+ * Request注销。与注册类似，作为这个请求的一部分，ApplicationMasters 可以报告IPC和网
+ * 页的URL,在应用程序结束、ApplicationMaster 不再运行后，客户端可以访问它们。
+ * o ApplicationMaster调用了使应用程序结束的API ( finish)后，ApplicationMaster (即
+ * ApplicationMaster的Container)将不会立即被杀死，直至ApplicationMaster自己退出
+ * 或ApplicationMaster活跃间隔时间超时。这样能使ApplicationMaster在其finish调用被
+ * ResourceManager成功记录后，做一些清理工作。
+ *
  **/
 @SuppressWarnings("unchecked")
 @Private

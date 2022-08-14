@@ -1285,6 +1285,11 @@ Container 启动是由 ContainerLauncher 服务完成，该服务将进一步调
     <value>5</value>
   </property>
 
+<!--
+yarn.nodemanager.delete.thread-count : DeletionService用于删除文件的线程数。
+DeletionService用于NodeManager中对日志文件和本地缓存文件的删除。默认值是4。
+
+-->
   <property>
     <description>Number of threads used in cleanup.</description>
     <name>yarn.nodemanager.delete.thread-count</name>
@@ -1336,6 +1341,11 @@ Container 启动是由 ContainerLauncher 服务完成，该服务将进一步调
 <!--  中间结果存放位置，类似于1.0中的mapred.local.dir。注意，这个参数通常会配置多个目录，
 已分摊磁盘IO负载。默认值：${hadoop.tmp.dir}/nm-local-dir
 以逗号分隔的本地文件系统上写入中间数据的路径列表。	多个路径有助于传播磁盘I / O.
+
+yarn.nodemanager.local-dirs :用逗号隔开的本地目录列表，用于本地化中的文件拷
+贝。使用多个目录是为了使用多个磁盘来做本地化，这样就可以提供fail-over (-一个
+或者几个磁盘故障不会影响所有的Container)和负载均衡(写操作不会有单- - 磁盘的
+瓶颈)了。因此，该配置项应该尽量配置成在不同的本地磁盘上的各个目录。
 -->
   <property>
     <description>List of directories to store localized files in. An 
@@ -1348,6 +1358,13 @@ Container 启动是由 ContainerLauncher 服务完成，该服务将进一步调
     <value>${hadoop.tmp.dir}/nm-local-dir</value>
   </property>
 
+<!--
+yarn.nodemanager.local-cache.max files-per-directory:在每个本地目录允许的最大
+文件数( PUBLIC, PRIVATE， 和APPLICATION是不同的)，默认值是8192，并且这
+个参数通常不应该设置成太大的数(设置成比底层文件系统，如ext3,每个目录允许
+的最大文件数小得多的值)。
+
+-->
   <property>
     <description>It limits the maximum number of files which will be localized
       in a single local directory. If the limit is reached then sub-directories
@@ -1367,6 +1384,11 @@ Container 启动是由 ContainerLauncher 服务完成，该服务将进一步调
     <value>8192</value>
   </property>
 
+<!--
+yarn.nodemanager.localizer.address : ResourceLocalizationService用于监 听各个
+Localizer请求的网络地址。
+
+-->
   <property>
     <description>Address where the localizer IPC is.</description>
     <name>yarn.nodemanager.localizer.address</name>
@@ -1388,12 +1410,31 @@ Container 启动是由 ContainerLauncher 服务完成，该服务将进一步调
     <value>true</value>
   </property>
 
+<!--
+yarn.nodemanager.localizer.cache.cleanup.interval-ms :在本配置项的时间后期之
+后，如果总的缓存大小超过了配置的最大缓存值，ResourceLocalizationService 尝试删
+除没有在使用的资源。没有在使用的资源是指没有被任何运行中的Container引用的
+资源。Container 每次请求一个资 源时，该Container都会被添加到这个资源的引用列
+表中，直到这个Container结束才删除，从而防止意外删除这个资源。当Container结
+束时，作为清理Container资源的一部分，Container 会从资源的引用列表中移除。当
+引用计数降为0时，这个资源即可以被删除。资源将在最近最少使用(LRU)的基础
+.上被删除，直到当前缓存大小降至目标值以下。
+-->
   <property>
     <description>Interval in between cache cleanups.</description>
     <name>yarn.nodemanager.localizer.cache.cleanup.interval-ms</name>
     <value>600000</value>
   </property>
 
+<!--
+yarn.nodemanager.localizer.cache.target-size-mb: 这个属性决定了用于本地化资源
+的最大磁盘空间。(没有为PRIVATE、APPLICATION或者PUBLIC缓存的单独限制)
+一旦缓存的 总的磁盘大小超过了这个值，DeletionService 就会尝试删除那些没有被任
+何运行中的Container使用的文件。这个限制适用于所有的磁盘，而不是在单个磁盘
+基础上使用。
+
+
+-->
   <property>
     <description>Target size of localizer cache in MB, per nodemanager. It is
       a target retention size that only includes resources with PUBLIC and 
@@ -1403,12 +1444,25 @@ Container 启动是由 ContainerLauncher 服务完成，该服务将进一步调
     <value>10240</value>
   </property>
 
+<!--
+yarn.nodemanager.localizer.client.thread-count: ResourceLocalizationService 的RPC
+线程数，用于处理Localizer的本地化请求。默认值是5，表示任何时刻，只有5个
+Localizer会被处理，其他需要在RPC队列中等待。
+
+
+-->
   <property>
     <description>Number of threads to handle localization requests.</description>
     <name>yarn.nodemanager.localizer.client.thread-count</name>
     <value>5</value>
   </property>
 
+<!--
+yarn.nodemanager.localizer.fetch.thread-count :本地化PUBLIC资源的线程数。调
+用PUBLIC资源的本地化是发生在NodeManager的地址空间。因此这个配置项限制
+了NodeManager 中为PUBLIC资源执行本地化的线程数，默认值是4。
+
+-->
   <property>
     <description>Number of threads to use for localization fetching.</description>
     <name>yarn.nodemanager.localizer.fetch.thread-count</name>
