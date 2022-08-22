@@ -51,6 +51,11 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
  * only one Active, and the active should respond faster than any configured
  * standbys. Once it receives a response from any one of the configured proxies,
  * outstanding requests to other proxies are immediately cancelled.
+ *
+ * 一个技术上不“故障转移”的FailoverProxyProvider实现。它构造一个包装器代理，
+ * 该代理同时向所有底层代理发送请求。包装器代理中的每个代理都将重试相应的目标。
+ * 它假定在HA设置中，只有一个Active，并且该Active响应速度应该比任何配置的备用服务器更快。
+ * 一旦它收到来自任何一个配置代理的响应，对其他代理的未完成请求将立即取消。
  */
 public class RequestHedgingRMFailoverProxyProvider<T>
     extends ConfiguredRMFailoverProxyProvider<T> {

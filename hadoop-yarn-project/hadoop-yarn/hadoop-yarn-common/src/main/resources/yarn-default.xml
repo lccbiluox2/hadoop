@@ -445,9 +445,12 @@
     <value>org.apache.hadoop.yarn.server.resourcemanager.scheduler.capacity.CapacityScheduler</value>
   </property>
 
-<!--  yarn.scheduler.minimum-allocation-mb/ yarn.scheduler.maximum-allocation-mb：
+<!--
+yarn.scheduler.minimum-allocation-mb/ yarn.scheduler.maximum-allocation-mb：
 单个可申请的最小/最大内存资源量。比如设置为1024和3072，则运行MapRedce作业时，
-每个Task最少可申请1024MB内存，最多可申请3072MB内存。默认值：1024/8192-->
+每个Task最少可申请1024MB内存，最多可申请3072MB内存。默认值：1024/8192
+应用程序申请的Container中最小的内存数量，如果申请的Container中的量小于该值，则增加到该值
+-->
 
   <property>
     <description>The minimum allocation for every container request at the RM
@@ -458,6 +461,8 @@
     <value>1024</value>
   </property>
 
+<!--  应用程序申请的Container中最大的内存数量，如果申请的Container中的量大于该值，则申请失败
+-->
   <property>
     <description>The maximum allocation for every container request at the RM
     in MBs. Memory requests higher than this will throw an
@@ -468,7 +473,10 @@
 
 <!--  单个可申请的最小/最大虚拟CPU个数。比如设置为1和4，则运行MapRedce作业时，
 每个Task最少可申请1个虚拟CPU，最多可申请4个虚拟CPU。什么是虚拟CPU，
-可阅读我的这篇文章：“YARN 资源调度器剖析”。默认值：1/32-->
+可阅读我的这篇文章：“YARN 资源调度器剖析”。默认值：1/32
+
+应用程序申请的Container中最小的vcore数量，如果申请的Container中的量小于该值，则增加到该值
+-->
   <property>
     <description>The minimum allocation for every container request at the RM
     in terms of virtual CPU cores. Requests lower than this will be set to the
@@ -479,6 +487,9 @@
     <value>1</value>
   </property>
 
+
+<!--  应用程序申请的Container中最大的vcore数量，如果申请的Container中的量大于该值，则申请失败
+-->
   <property>
     <description>The maximum allocation for every container request at the RM
     in terms of virtual CPU cores. Requests higher than this will throw an
@@ -772,6 +783,11 @@
     <!--value>rm1</value-->
   </property>
 
+
+<!--
+HA模式下，客户端，AM，NM在连接Active RM时的代理类，默认实现是通过配置逐一查找
+Active RM
+-->
   <property>
     <description>When HA is enabled, the class to be used by Clients, AMs and
       NMs to failover to the Active RM. It should extend
@@ -798,6 +814,11 @@
     <!--value>15</value-->
   </property>
 
+<!--  HA模式下，客户端在连接Active RM时失败后会依据该配置值生成一个随机时长(ms)，
+并且在sleep该随机时长后进行重试。因为ConfiguredRMFailoverProxyProvider是通过
+轮询配置来逐一查找Active RM，中间必然会有failover因此建议适当减少sleep时长来减少
+客户端的恢复时长，默认值为10000
+-->
   <property>
     <description>When HA is enabled, the sleep base (in milliseconds) to be
       used for calculating the exponential delay between failovers. When set,
@@ -808,6 +829,10 @@
     <!--value>500</value-->
   </property>
 
+<!--  HA模式下，客户端在连接Active RM时失败后会依据该配置值生成一个随机时长(ms)，
+并且在sleep该随机时长后进行重试。该配置值用于控制随机时长的最大值。因为
+ConfiguredRMFailoverProxyProvider是通过轮询配置来逐一查找Active RM，
+中间必然会有failover因此建议适当减少sleep时长来减少客户端的恢复时长，默认值为30000 -->
   <property>
     <description>When HA is enabled, the maximum sleep time (in milliseconds)
       between failovers. When set, this overrides the
@@ -817,6 +842,9 @@
     <!--value>15000</value-->
   </property>
 
+<!--  当启用HA功能时，每次连接ResourceManager的重试次数。换句话说，它是
+在故障转移尝试期间使用的ipc.client.connect.max.retries
+-->
   <property>
     <description>When HA is enabled, the number of retries per
       attempt to connect to a ResourceManager. In other words,
@@ -826,6 +854,8 @@
     <value>0</value>
   </property>
 
+<!--  Socket超时后重试的次数，如果客户端上层应用调用本身没有重试机制的话，建议开启客户端重试
+ -->
   <property>
     <description>When HA is enabled, the number of retries per
       attempt to connect to a ResourceManager on socket timeouts. In other
@@ -1820,6 +1850,9 @@ YARN也会按照这些内存来使用（傻不傻？），因此，这个值通�
     <value>100</value>
   </property>
 
+
+<!--  是否启用资源探测，启用后NM会自动探测宿主机的可用资源
+-->
   <property>
     <description>Enable auto-detection of node capabilities such as
     memory and CPU.
