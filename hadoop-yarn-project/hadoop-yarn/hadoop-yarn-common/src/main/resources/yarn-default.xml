@@ -966,6 +966,11 @@
     <value>NONE</value>
   </property>
 
+<!--  资源抢占模型-->
+<!--  最小资源量不是硬性保障，当队列不需要任何资源时，并不会满足最小资源量，会把此队列资源分给其他需要的队列。-->
+<!--  当此队列需有新应用提交时，调度器将本属于它的资源归还，归还需要等待时间，如果超时，则发生抢占。-->
+<!--  只有调度器实现PreemptableResourceScheduler接口且yarn.resourcemanager.scheduler.monitor.enable-->
+<!--  设置true（默认false）才开启抢占功能。-->
   <property>
     <description>Enable a set of periodic monitors (specified in
         yarn.resourcemanager.scheduler.monitor.policies) that affect the

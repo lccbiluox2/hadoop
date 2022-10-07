@@ -46,6 +46,9 @@ import org.apache.hadoop.yarn.util.AbstractLivelinessMonitor;
  * 此外，NodeManager自己也查看这个超时时间，该信息编码绑定在Container的
  * ContainerToken中。如果Container已经超时，则NodeManager拒绝拉起该Container。显然，
  * 该功能依赖于系统中ResourceManager和NodeManager上系统时钟的同步。
+ *
+ * 决定和执行回收已分配容器。如果AM申请的容器在默认10min（yarn.resourcemanager.rm.container-allocation.expiry-interval-ms）
+ * 内没有在对应的NM上启动，RM将强制回收。
  **/
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class ContainerAllocationExpirer extends

@@ -93,6 +93,20 @@ import org.apache.hadoop.yarn.util.StringHelper;
  *
  * 注：RM不负责ApplicationMaster内部任务的执行以及容错，只负责资源的分配和状态的跟踪。
  *
+ * 负责应用程序启动和关闭。ClientRMService收到客户端请求会调用RMAppManager.submitApplication
+ * 创建RMApp对象，维护应用程序整个生命周期。RMApp运行结束触发RMAPPManagerEventType.APP_COMPLETED
+ * 事件调用RMAppManager.finishApplicaiton。
+ *
+ * finish分两部分：
+ * 一、将应用放到完成列表。用户可查看历史运行信息。列表默认大小10000（yarn.resourcemanager.max-completed-applicaitons设置），
+ *    超过最大值则移除内存存入硬盘，用户只能通过History Server查看。
+ * 二、将应用从RMStateStore中移除。RMStateStore存储运行中程序的运行日志。出故障后，RM可以通过这些
+ *    日志恢复程序。
+ *
+ *
+ * 根据应用提交上下文内容创建初始状态为NEW的应用，将应用状态持久化到RM状态存储服务（例如ZooKeeper集群，
+ * RM状态存储服务用来保证RM重启、HA切换或发生故障后集群应用能够正常恢复，后续流程中的涉及状态存储时不再赘述），应用状态变为NEW_SAVING；
+ *
  */
 public class RMAppManager implements EventHandler<RMAppManagerEvent>, 
                                         Recoverable {

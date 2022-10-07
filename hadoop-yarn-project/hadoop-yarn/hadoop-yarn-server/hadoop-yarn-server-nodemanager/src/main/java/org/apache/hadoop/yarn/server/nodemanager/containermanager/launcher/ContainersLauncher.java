@@ -54,7 +54,10 @@ import org.apache.hadoop.thirdparty.com.google.common.util.concurrent.ThreadFact
  * The launcher for the containers. This service should be started only after
  * the {@link ResourceLocalizationService} is started as it depends on creation
  * of system directories on the local file-system.
- * 
+ *
+ * 维护一个线程池并行负责Container的具体操作，包括启动、重启、恢复和清理等。将待运行Container
+ * 所需的环境变  量和运行命令写到Container工作目录下的launch_container.sh脚本中，然后运行
+ * 该脚本启动Container。
  */
 public class ContainersLauncher extends AbstractService
     implements AbstractContainersLauncher {

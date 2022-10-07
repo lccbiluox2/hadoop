@@ -66,6 +66,10 @@ import org.apache.hadoop.thirdparty.com.google.common.annotations.VisibleForTest
  * 8/1/22 6:39 PM 九师兄
  *
  * 管理exclude和include节点列表，维护正常节点和异常节点列表。
+ *
+ * 管理exclude（类似黑名单）、include（类似白名单）列表。黑白名单概念Yarn其他地方有含义。默认情况两个列表均为空。在exclude列表中的主机不能和RM通信（直接报错）。
+ * 通过yarn.resourcemanager.nodes.include-path、yarn.resourcemanager.nodes.exclude-path选项配置。
+ * bin/yarn rmadmin -refreshNodes 可以动态加载这俩文件。
  **/
 @SuppressWarnings("unchecked")
 public class NodesListManager extends CompositeService implements

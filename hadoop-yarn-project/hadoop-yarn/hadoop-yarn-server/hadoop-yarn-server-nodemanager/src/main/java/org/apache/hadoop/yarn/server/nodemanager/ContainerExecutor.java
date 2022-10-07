@@ -75,6 +75,11 @@ import static org.apache.hadoop.yarn.server.nodemanager.containermanager.launche
 /**
  * This class is abstraction of the mechanism used to launch a container on the
  * underlying OS.  All executor implementations must extend ContainerExecutor.
+ *
+ * 启动容器是由ContainersLauncher服务完成的，而运行容器是由插拔式组件ContainerExecutor完成的。
+ * 提供两种实现：DefaultContainerExecutor和LinuxContainerExecutor。
+ * DefaultContainerExecutor以NM启动者身份去启停容器。
+ * LinuxContainerExecutor以应用程序拥有者启停容器，并允许用户通过Cgroups对CPU隔离。
  */
 public abstract class ContainerExecutor implements Configurable {
   private static final Logger LOG =

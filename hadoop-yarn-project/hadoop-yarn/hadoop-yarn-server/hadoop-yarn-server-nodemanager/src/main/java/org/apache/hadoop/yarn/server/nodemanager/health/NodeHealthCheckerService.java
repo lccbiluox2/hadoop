@@ -61,6 +61,10 @@ import java.util.stream.Collectors;
  *
  * 第二种是判断磁盘好坏。（NM上专门有一个周期性任务检测磁盘的好坏，如果坏磁盘数据达到一定的比
  * 例，则认为结点处于不健康的状态）。
+ *
+ * NodeHealthScriptRunner周期性运行脚本，LocalDirsHandlerService周期性向磁盘写文件，
+ * 来检查节点健康状况。通过NodeStatusUpdater向RM上报。如果不健康RM会把此NM加入黑名单，
+ * 当状态变为健康再移除黑名单。被拉黑的NM上正在运行的容器不行被杀死，仍然会正常运行。
  */
 public class NodeHealthCheckerService extends CompositeService
     implements HealthReporter {

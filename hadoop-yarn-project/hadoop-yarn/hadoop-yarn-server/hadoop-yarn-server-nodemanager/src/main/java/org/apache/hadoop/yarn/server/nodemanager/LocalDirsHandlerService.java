@@ -54,6 +54,23 @@ import org.apache.hadoop.yarn.server.nodemanager.metrics.NodeManagerMetrics;
  * The class which provides functionality of checking the health of the local
  * directories of a node. This specifically manages nodemanager-local-dirs and
  * nodemanager-log-dirs by periodically checking their health.
+ *
+ * todo: 健康检查
+ * 健康检查也可以用于动态升级。利用健康检查脚本机制告诉RM不在分配任务，等NM升级好了再分配。
+ * 两种策略判断健康情况：
+ *   一、自定义Shell，一旦脚本输出ERROR开头的字符串，则认为节点不健康。
+ *   二、判断磁盘好坏，NM上有周期性检测磁盘模块，如果坏磁盘数达到一定比例则认为不健康。
+ *
+ * NodeHealthScriptRunner
+ * 周期性执行脚本发现标准输出有以ERROR开头的输出，则通过心跳告诉RM，RM将其拉黑，此后不会分配新容器，
+ * 老容器继续运行。只要NM活着会一直运行该脚本，当不输出ERROR则通过心跳向RM汇报，移除拉黑。
+ *
+ * 实践：由于Yarn只对CPU和内存隔离。网络和磁盘IO不隔离。不同任务会互相干扰。健康检查脚本可以缓解此问题。
+ * 脚本去检查网络、磁盘、文件系统等情况。发现网络拥塞、磁盘空间不足、文件系统故障，可将状态变为不健康。
+ *
+ * LocalDirsHandlerService
+ * 一旦发现正常比例低于配置值则设为不健康状态。判断磁盘好坏方式是目录具有读、写、执行三权限。判断
+ * local-dirs和log-dirs所设置的目录。
  */
 public class LocalDirsHandlerService extends AbstractService
     implements HealthReporter {

@@ -102,6 +102,9 @@ import org.apache.hadoop.thirdparty.com.google.common.annotations.VisibleForTest
  * 各个Container运行状态，运行的Application列表、节点健康状况等信息，作为请求的应答，
  * ResourceTrackService可为NM返回释放Container列表、Application列表等信息。
  *
+ * ResourceTracker协议Server。请求分两种注册和心跳。
+ * 注册请求包含：节点ID、可用资源上限等。ResourceTracker.registerNodeManager
+ * 心跳请求包含：容器状态、Application列表、节点健康状况等。ResourceTracker.nodeHeartbeat
  **/
 public class ResourceTrackerService extends AbstractService implements
     ResourceTracker {

@@ -48,6 +48,10 @@ import org.apache.hadoop.yarn.server.nodemanager.recovery.NMStateStoreService;
 
 import org.apache.hadoop.thirdparty.com.google.common.util.concurrent.ThreadFactoryBuilder;
 
+/***
+ * todo: 2022/10/5 下午7:12 lcc 九师兄
+ *       删除文件模块。独立成模块为了减少性能开销。
+ */
 public class DeletionService extends AbstractService {
 
   private static final Logger LOG =

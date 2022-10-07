@@ -24,6 +24,11 @@ import org.apache.hadoop.yarn.api.records.ResourceUtilization;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.server.nodemanager.ResourceView;
 
+/***
+ * todo: 2022/10/5 下午7:09 lcc 九师兄
+ *       监控容器资源使用。如果内存使用超过虚拟内存大小，NM将杀死此容器，防止影响其他容器运行。
+ *       只有内存通过此方式限制。CPU则使用Linux的Cgroups。
+ */
 public interface ContainersMonitor extends Service,
     EventHandler<ContainersMonitorEvent>, ResourceView {
   ResourceUtilization getContainersUtilization();

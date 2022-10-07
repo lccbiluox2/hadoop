@@ -42,6 +42,13 @@ import org.apache.hadoop.thirdparty.com.google.common.annotations.VisibleForTest
  *
  * 负责管理应用程序的访问权限，包含两部分权限：查看权限和修改权限。查看权限主要用于查看应用程序
  * 基本信息，而修改权限则主要用于修改应用程序的优先级、杀死应用程序等。
+ *
+ * 应用程序访问权限控制。分查看权限和修改权限。
+ * 查看权限：查看运行时间、优先级等信息。
+ * 修改权限：修改优先级、杀死程序等。
+ * 默认普通用户可以查看所有其他用户应用程序。应用程序拥有用户和集群管理员（yarn-site.xml的yarn.admin.ack设置）有查看和修改权限。
+ * 其他用户和用户组想要获得权限需要Client在ContainerLaunchContext类实例化时传入用户和用户组名来赋予。
+ * 一般情况下，运行在Yarn上的计算框架实现了提交程序时动态设置。
  **/
 @InterfaceAudience.Private
 public class ApplicationACLsManager {

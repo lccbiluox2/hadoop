@@ -26,6 +26,10 @@ import org.apache.hadoop.yarn.server.nodemanager.containermanager.loghandler.eve
 
 import java.util.Set;
 
+/***
+ * todo: 2022/10/5 下午7:10 lcc 九师兄
+ *      LogHandler：可插拔组件。日志保存本地磁盘还是上传到文件系统
+ */
 public interface LogHandler extends EventHandler<LogHandlerEvent> {
   public void handle(LogHandlerEvent event);
 

@@ -1652,6 +1652,10 @@ public class ContainerManagerImpl extends CompositeService implements
     }
   }
 
+  /***
+   * todo: 2022/10/5 下午7:10 lcc 九师兄
+   *      ContainerEventDispatcher：将ContainerEvent类事件调度给Container状态机
+   */
   class ContainerEventDispatcher implements EventHandler<ContainerEvent> {
     @Override
     public void handle(ContainerEvent event) {
@@ -1670,6 +1674,10 @@ public class ContainerManagerImpl extends CompositeService implements
     }
   }
 
+  /***
+   * todo: 2022/10/5 下午7:11 lcc 九师兄
+   *       ApplicationEventDispatcher：ApplicationEvent类事件调度给Application状态机
+   */
   class ApplicationEventDispatcher implements EventHandler<ApplicationEvent> {
     @Override
     public void handle(ApplicationEvent event) {

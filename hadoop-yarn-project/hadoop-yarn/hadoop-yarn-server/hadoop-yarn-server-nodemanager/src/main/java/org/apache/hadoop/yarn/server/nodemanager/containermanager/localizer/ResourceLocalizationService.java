@@ -148,6 +148,15 @@ import org.apache.hadoop.thirdparty.com.google.common.cache.CacheBuilder;
 import org.apache.hadoop.thirdparty.com.google.common.cache.LoadingCache;
 import org.apache.hadoop.thirdparty.com.google.common.util.concurrent.ThreadFactoryBuilder;
 
+/***
+ * todo: 2022/10/5 下午7:09 lcc 九师兄
+ *   负责资源本地化和资源回收。
+ *   资源本地化服务，负责Container所需资源的本地化。它能够按照描述从HDFS上下载Container所需的文件
+ *   资源（jar包、可执行文件等），并尽量将它们分摊到各个磁盘上以防止出现访问热点。初始化各种服务组件、
+ *   创建工作目录、从HDFS下载运行所需的各种资源至Container工作目录
+ *   （路径为: ${yarn.nodemanager.local-dirs}/usercache/${user}/appcache//）。
+ *   资源回收则是资源本地化的逆过程，清理各种资源。
+ */
 public class ResourceLocalizationService extends CompositeService
     implements EventHandler<LocalizationEvent>, LocalizationProtocol {
 

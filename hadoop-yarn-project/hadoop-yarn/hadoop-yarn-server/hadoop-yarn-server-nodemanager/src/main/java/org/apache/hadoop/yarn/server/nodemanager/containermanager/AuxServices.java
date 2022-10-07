@@ -82,6 +82,10 @@ import org.apache.hadoop.yarn.server.nodemanager.containermanager.deletion.task.
 import org.apache.hadoop.yarn.util.FSDownload;
 import org.apache.hadoop.thirdparty.com.google.common.base.Preconditions;
 
+/***
+ * todo: 2022/10/5 下午7:10 lcc 九师兄
+ *     AuxServices：附属服务在NM启动前配置好。
+ */
 public class AuxServices extends AbstractService
     implements ServiceStateChangeListener, EventHandler<AuxServicesEvent> {
 
