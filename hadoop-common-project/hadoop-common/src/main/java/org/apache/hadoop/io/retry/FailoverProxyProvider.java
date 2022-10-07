@@ -68,6 +68,8 @@ public interface FailoverProxyProvider<T> extends Closeable {
   /**
    * Called whenever the associated {@link RetryPolicy} determines that an error
    * warrants failing over.
+   *
+   * 当关联的{@link RetryPolicy}确定错误需要故障转移时调用。
    * 
    * @param currentProxy
    *          the proxy object which was being used before this failover event

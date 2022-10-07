@@ -23,8 +23,11 @@
  */
 
 syntax = "proto2";
+// 生成java类所在的包；如果不需要产生java代码，则该选项将不起任何作用
 option java_package = "org.apache.hadoop.yarn.proto";
+// 想要生成Java类的名称；如果不生成java代码，则该选项不起任何作用
 option java_outer_classname = "ApplicationClientProtocol";
+// 编译器是否应该基于服务定义产生抽象服务代码
 option java_generic_services = true;
 option java_generate_equals_and_hash = true;
 package hadoop.yarn;

@@ -34,6 +34,9 @@ import org.apache.hadoop.ipc.RPC;
  * resolve the proxy DNS in the event of failover.
  * This provider supports YARN Resourcemanager's HA mode.
  * This provider doesn't support Federation.
+ *
+ * {@link RMFailoverProxyProvider}的子类，它试图在故障转移时解析代理DNS。
+ * 该提供商支持YARN Resourcemanager的HA模式。该提供程序不支持Federation。
  */
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
